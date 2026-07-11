@@ -6,7 +6,7 @@ module.exports = {
     {
       displayName: 'unit',
       testEnvironment: 'node',
-      testMatch: ['**/__tests__/**/*.test.ts'],
+      testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
       transform: {
         '^.+\\.[jt]sx?$': [
           'babel-jest',

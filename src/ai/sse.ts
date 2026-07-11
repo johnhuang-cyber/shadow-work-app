@@ -16,8 +16,9 @@ export function createSseAccumulator() {
           const delta = json?.choices?.[0]?.delta?.content;
           if (typeof delta === 'string') out += delta;
         } catch {
-          buffer = line + '\n' + buffer;
-          break;
+          // 完整的一行（有换行结尾）却解析失败 = 畸形数据，丢弃并继续处理后续行；
+          // 跨 chunk 的半行没有换行，不会进到这里（留在 buffer 等下一段）。
+          continue;
         }
       }
       return out;
