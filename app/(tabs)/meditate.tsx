@@ -1,26 +1,67 @@
-import { Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MEDITATION_SCRIPTS } from '../../src/domain/meditationScripts';
+import type { MedScript } from '../../src/domain/meditationScripts';
+import { AppText, Card, Screen } from '../../src/components';
+import { useTheme } from '../../src/theme';
+
+function scriptMeta(s: MedScript): string {
+  const minutes = Math.round(s.steps.reduce((a, st) => a + st.seconds, 0) / 60);
+  return `${s.steps.length} 步 · 约 ${minutes} 分钟`;
+}
 
 export default function MeditateScreen() {
   const router = useRouter();
+  const { colors, fontFamily, shadow } = useTheme();
+
   return (
-    <FlatList
-      contentContainerStyle={styles.c}
-      data={MEDITATION_SCRIPTS}
-      keyExtractor={s => s.id}
-      renderItem={({ item }) => (
-        <TouchableOpacity style={styles.row} onPress={() => router.push(`/meditate/${item.id}`)}>
-          <Text style={styles.t}>{item.title}</Text>
-          <Text style={styles.sub}>{item.steps.length} 步 · 约 {Math.round(item.steps.reduce((a, s) => a + s.seconds, 0) / 60)} 分钟</Text>
-        </TouchableOpacity>
-      )}
-    />
+    <Screen>
+      <FlatList
+        data={MEDITATION_SCRIPTS}
+        keyExtractor={(s) => s.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 48 }}
+        ListHeaderComponent={
+          <View style={{ paddingTop: 16, paddingBottom: 26 }}>
+            <AppText style={{ fontFamily: fontFamily.serif, fontSize: 22, lineHeight: 32 }}>
+              冥想
+            </AppText>
+            <AppText variant="caption" secondary style={{ marginTop: 6, fontSize: 13 }}>
+              给自己几分钟，回到此刻
+            </AppText>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={item.title}
+            onPress={() => router.push(`/meditate/${item.id}`)}
+          >
+            <Card
+              radius="md"
+              padding={20}
+              style={{
+                marginBottom: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+                ...shadow.soft,
+              }}
+            >
+              <View style={{ flex: 1, gap: 6 }}>
+                <AppText style={{ fontFamily: fontFamily.serif, fontSize: 18, lineHeight: 27 }}>
+                  {item.title}
+                </AppText>
+                <AppText variant="caption" secondary style={{ fontSize: 13 }}>
+                  {scriptMeta(item)}
+                </AppText>
+              </View>
+              <Feather name="chevron-right" size={18} color={colors.textSecondary} />
+            </Card>
+          </Pressable>
+        )}
+      />
+    </Screen>
   );
 }
-const styles = StyleSheet.create({
-  c: { padding: 16, gap: 10 },
-  row: { padding: 16, borderRadius: 10, backgroundColor: '#F3EEFA' },
-  t: { fontSize: 16, fontWeight: '600' },
-  sub: { color: '#666', marginTop: 4 },
-});
