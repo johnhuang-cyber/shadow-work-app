@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet } from 'react-native';
 import * as Speech from 'expo-speech';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MEDITATION_SCRIPTS, medReducer, initMedState } from '../../src/domain/meditationScripts';
-import type { MedState, MedAction, MedScript } from '../../src/domain/meditationScripts';
+import type { MedState, MedAction } from '../../src/domain/meditationScripts';
 import { addSession } from '../../src/data/meditationDao';
 
 export default function PlayerScreen() {
@@ -33,9 +33,13 @@ export default function PlayerScreen() {
   useEffect(() => {
     if (state.completed) {
       Speech.stop();
-      addSession({ scriptId: script.id, durationSec: Math.round((Date.now() - startedAt.current) / 1000), completed: true });
+      addSession({ scriptId: script.id, durationSec: Math.round((Date.now() - startedAt.current) / 1000), completed: true })
+        .catch(e => console.error('保存冥想记录失败', e));
     }
   }, [state.completed]);
+
+  // 离开页面（含 OS 手势返回）时停止朗读
+  useEffect(() => () => { Speech.stop(); }, []);
 
   return (
     <View style={styles.c}>

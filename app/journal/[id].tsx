@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, TextInput, Button, ScrollView, View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { JOURNAL_STEPS, nextStep, prevStep, isLastStep } from '../../src/domain/journalSteps';
 import { getEntry, saveEntry, addCoachMessage, listCoachMessages } from '../../src/data/journalDao';
 import { runCoach } from '../../src/ai/deepseek';
@@ -19,10 +19,23 @@ export default function JournalScreen() {
   const [streaming, setStreaming] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const router = useRouter();
+  const navigation = useNavigation();
+  const entryRef = useRef<JournalEntry | null>(null);
+  entryRef.current = entry;
+
   useEffect(() => {
     getEntry(id!).then(setEntry);
     listCoachMessages(id!).then(setMessages);
   }, [id]);
+
+  // OS 手势/硬件返回时也持久化（onBlur 覆盖不到键盘未失焦的情况）
+  useEffect(() => {
+    const sub = navigation.addListener('beforeRemove', () => {
+      if (entryRef.current) saveEntry(entryRef.current);
+    });
+    return () => sub();
+  }, [navigation]);
 
   if (!entry) return <ActivityIndicator style={{ marginTop: 40 }} />;
 
@@ -60,7 +73,7 @@ export default function JournalScreen() {
       <View style={styles.nav}>
         <Button title="上一步" onPress={() => { persist(); setStepIdx(prevStep(stepIdx)); }} disabled={stepIdx === 0} />
         <Button title="问教练" onPress={askCoach} />
-        <Button title={isLastStep(stepIdx) ? '完成' : '下一步'} onPress={() => { persist(); setStepIdx(nextStep(stepIdx)); }} />
+        <Button title={isLastStep(stepIdx) ? '完成' : '下一步'} onPress={() => { persist(); if (isLastStep(stepIdx)) router.back(); else setStepIdx(nextStep(stepIdx)); }} />
       </View>
       <Text style={styles.h}>教练对话</Text>
       {messages.map(m => (
