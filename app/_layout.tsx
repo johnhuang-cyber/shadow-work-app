@@ -1,6 +1,13 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { getDb } from '../src/data/db';
+
 export default function RootLayout() {
+  useEffect(() => {
+    getDb();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <Stack>
