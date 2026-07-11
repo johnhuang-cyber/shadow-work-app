@@ -10,10 +10,13 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import * as Speech from 'expo-speech';
 import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { JOURNAL_STEPS, nextStep, prevStep, isLastStep } from '../../src/domain/journalSteps';
-import { getEntry, saveEntry, addCoachMessage, listCoachMessages } from '../../src/data/journalDao';
+import { getEntry, saveEntry, addCoachMessage, listCoachMessages, deleteCoachMessage } from '../../src/data/journalDao';
 import { runCoach } from '../../src/ai/deepseek';
+import { getAiConsent, setAiConsent } from '../../src/services/settingsService';
 import type { JournalEntry, CoachMessage } from '../../src/types';
 import { AppText, Card, GhostButton, PrimaryButton, Screen, SoftInput } from '../../src/components';
 import { useTheme } from '../../src/theme';
@@ -251,6 +254,9 @@ export default function JournalScreen() {
   const [confirming, setConfirming] = useState(false);
   const [coachError, setCoachError] = useState<'network' | 'nokey' | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const router = useRouter();
   const navigation = useNavigation();
@@ -260,6 +266,10 @@ export default function JournalScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const pendingRef = useRef<{ text: string; history: { role: 'user' | 'assistant'; content: string }[] } | null>(null);
   const finishTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playingRef = useRef<string | null>(null);
+  playingRef.current = playingId;
 
   useEffect(() => {
     getEntry(id!).then(setEntry);
@@ -274,7 +284,13 @@ export default function JournalScreen() {
     return () => sub();
   }, [navigation]);
 
-  useEffect(() => () => { if (finishTimer.current) clearTimeout(finishTimer.current); }, []);
+  useEffect(() => () => {
+    if (finishTimer.current) clearTimeout(finishTimer.current);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    if (deleteTimer.current) clearTimeout(deleteTimer.current);
+    // 只停掉本页发起的朗读
+    if (playingRef.current) Speech.stop();
+  }, []);
 
   if (!entry) {
     return (
@@ -339,11 +355,106 @@ export default function JournalScreen() {
     await requestCoach(text, history);
   };
 
+  /** 发送入口：第一次询问一次同意，之后直接发送。 */
+  const onSendPress = async () => {
+    if (await getAiConsent()) await confirmSend();
+    else setConfirming(true);
+  };
+
+  const acceptAndSend = async () => {
+    await setAiConsent();
+    await confirmSend();
+  };
+
   const retry = () => {
     const pending = pendingRef.current;
     if (pending) requestCoach(pending.text, pending.history);
     else setCoachError(null);
   };
+
+  // ——— 消息操作：复制 / 朗读 / 删除 ———
+  const copyMessage = async (m: CoachMessage) => {
+    await Clipboard.setStringAsync(m.content);
+    setCopiedId(m.id);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const togglePlay = (m: CoachMessage) => {
+    if (playingId === m.id) {
+      Speech.stop();
+      setPlayingId(null);
+      return;
+    }
+    Speech.stop();
+    setPlayingId(m.id);
+    const clear = () => setPlayingId((p) => (p === m.id ? null : p));
+    Speech.speak(m.content, { language: 'zh-CN', rate: 0.95, onDone: clear, onStopped: clear, onError: clear });
+  };
+
+  const removeMessage = async (m: CoachMessage) => {
+    if (deletingId !== m.id) {
+      setDeletingId(m.id);
+      if (deleteTimer.current) clearTimeout(deleteTimer.current);
+      deleteTimer.current = setTimeout(() => setDeletingId(null), 2000);
+      return;
+    }
+    if (deleteTimer.current) clearTimeout(deleteTimer.current);
+    setDeletingId(null);
+    if (playingId === m.id) {
+      Speech.stop();
+      setPlayingId(null);
+    }
+    await deleteCoachMessage(m.id);
+    setMessages(await listCoachMessages(id!));
+  };
+
+  /** 每条消息气泡下方的低调操作行。 */
+  const renderActions = (m: CoachMessage) => (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        marginTop: 8,
+        opacity: 0.7,
+        alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={copiedId === m.id ? '已复制' : '复制'}
+        onPress={() => copyMessage(m)}
+        hitSlop={8}
+      >
+        <Feather name={copiedId === m.id ? 'check' : 'copy'} size={14} color={colors.textSecondary} />
+      </Pressable>
+      {m.role === 'assistant' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={playingId === m.id ? '停止朗读' : '朗读'}
+          onPress={() => togglePlay(m)}
+          hitSlop={8}
+        >
+          <Feather name={playingId === m.id ? 'square' : 'volume-2'} size={14} color={colors.textSecondary} />
+        </Pressable>
+      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={deletingId === m.id ? '确认删除' : '删除'}
+        onPress={() => removeMessage(m)}
+        hitSlop={8}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+      >
+        <Feather name="trash-2" size={14} color={deletingId === m.id ? colors.danger : colors.textSecondary} />
+        {deletingId === m.id ? (
+          <AppText variant="caption" color={colors.danger} style={{ fontSize: 11, lineHeight: 15 }}>
+            再点一次删除
+          </AppText>
+        ) : null}
+      </Pressable>
+    </View>
+  );
 
   const stepDots = (
     <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 22, marginBottom: 8 }}>
@@ -482,27 +593,33 @@ export default function JournalScreen() {
             ) : null}
 
             {/* 消息列表 */}
-            {messages.map((m) =>
-              m.role === 'user' ? (
-                <View
-                  key={m.id}
-                  style={{
-                    alignSelf: 'flex-end',
-                    maxWidth: '82%',
-                    backgroundColor: colors.presenceSoft,
-                    borderRadius: radius.md,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                  }}
-                >
-                  <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
-                </View>
-              ) : (
-                <Card key={m.id} radius="md" padding={16} style={{ alignSelf: 'flex-start', maxWidth: '88%', ...shadow.soft }}>
-                  <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
-                </Card>
-              )
-            )}
+            {messages.map((m) => (
+              <View
+                key={m.id}
+                style={{
+                  alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: m.role === 'user' ? '82%' : '88%',
+                }}
+              >
+                {m.role === 'user' ? (
+                  <View
+                    style={{
+                      backgroundColor: colors.presenceSoft,
+                      borderRadius: radius.md,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                    }}
+                  >
+                    <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
+                  </View>
+                ) : (
+                  <Card radius="md" padding={16} style={{ ...shadow.soft }}>
+                    <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
+                  </Card>
+                )}
+                {renderActions(m)}
+              </View>
+            ))}
 
             {/* 流式回复 / 等待态 */}
             {loading && streaming ? (
@@ -548,15 +665,15 @@ export default function JournalScreen() {
               </Card>
             ) : null}
 
-            {/* 发送前确认（内联，不用 Alert） */}
+            {/* 首次发送前确认一次（内联，不用 Alert；之后不再询问） */}
             {confirming ? (
               <Card radius="md" padding={18} style={{ gap: 14 }}>
                 <AppText variant="caption" secondary style={{ lineHeight: 22 }}>
-                  这段话将发送给 DeepSeek，用于生成教练的回应。你的分享只属于你自己 · 已加密。
+                  这段话将发送给 DeepSeek，用于生成教练的回应。你的分享只属于你自己 · 已加密。只在第一次发送前问你这一次。
                 </AppText>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <GhostButton label="取消" onPress={() => setConfirming(false)} style={{ flex: 1, height: 48 }} />
-                  <PrimaryButton label="发送" onPress={confirmSend} style={{ flex: 1.4, height: 48 }} />
+                  <PrimaryButton label="确认发送" onPress={acceptAndSend} style={{ flex: 1.4, height: 48 }} />
                 </View>
               </Card>
             ) : null}
@@ -581,7 +698,7 @@ export default function JournalScreen() {
               <PrimaryButton
                 label="发送"
                 disabled={!coachText.trim() || loading || confirming}
-                onPress={() => setConfirming(true)}
+                onPress={onSendPress}
                 style={{ height: 48, paddingHorizontal: 20 }}
               />
             </View>

@@ -147,16 +147,46 @@ export default function PlayerScreen() {
   const router = useRouter();
   const script = MEDITATION_SCRIPTS.find(s => s.id === scriptId)!;
   const [running, setRunning] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [state, dispatch] = useReducer(
     (s: MedState, a: MedAction) => medReducer(s, a, script), script, initMedState
   );
   const spokenStep = useRef(-1);
   const startedAt = useRef(Date.now());
+  const mutedRef = useRef(false);
+  const voiceRef = useRef<string | undefined>(undefined);
+
+  // 挑一个更自然的中文语音（enhanced/premium/neural 优先），去掉机器人感。
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const voices = await Speech.getAvailableVoicesAsync();
+        const zh = voices.filter(v => v.language?.toLowerCase().startsWith('zh'));
+        if (!zh.length) return;
+        const pick =
+          zh.find(v => /enhanced|premium|neural/i.test(v.identifier)) ??
+          zh.find(v => v.quality === Speech.VoiceQuality.Enhanced) ??
+          zh[0];
+        if (!cancelled) voiceRef.current = pick.identifier;
+      } catch {
+        // Web 等环境可能不支持，静默回退到系统默认音色
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (state.stepIndex !== spokenStep.current && !state.completed) {
       spokenStep.current = state.stepIndex;
-      Speech.speak(script.steps[state.stepIndex].text, { language: 'zh-CN' });
+      if (!mutedRef.current) {
+        Speech.speak(script.steps[state.stepIndex].text, {
+          language: 'zh-CN',
+          rate: 0.8,
+          pitch: 0.95,
+          voice: voiceRef.current,
+        });
+      }
     }
   }, [state.stepIndex, state.completed]);
 
@@ -186,6 +216,13 @@ export default function PlayerScreen() {
   };
   const end = () => { Speech.stop(); router.back(); };
 
+  const toggleMute = () => {
+    const next = !muted;
+    mutedRef.current = next;
+    setMuted(next);
+    if (next) Speech.stop();
+  };
+
   const elapsed = script.steps.slice(0, state.stepIndex).reduce((a, s) => a + s.seconds, 0) + state.secondsInStep;
   const totalSec = script.steps.reduce((a, s) => a + s.seconds, 0);
   const remaining = Math.max(totalSec - elapsed, 0);
@@ -198,12 +235,32 @@ export default function PlayerScreen() {
         <Completion onBack={() => router.back()} />
       ) : (
         <View style={{ flex: 1, paddingHorizontal: 28, paddingTop: 18 }}>
-          <AppText
-            color={cream(0.5)}
-            style={{ fontSize: 13, lineHeight: 18, letterSpacing: 0.5, textAlign: 'center' }}
-          >
-            {script.title}
-          </AppText>
+          {/* 顶部：标题居中，右侧静音开关 */}
+          <View style={{ minHeight: 44, justifyContent: 'center' }}>
+            <AppText
+              color={cream(0.5)}
+              style={{ fontSize: 13, lineHeight: 18, letterSpacing: 0.5, textAlign: 'center' }}
+            >
+              {script.title}
+            </AppText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={muted ? '开启语音引导' : '关闭语音引导'}
+              onPress={toggleMute}
+              style={({ pressed }) => ({
+                position: 'absolute',
+                right: -10,
+                top: 0,
+                width: 44,
+                height: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Feather name={muted ? 'volume-x' : 'volume-2'} size={20} color={cream(0.6)} />
+            </Pressable>
+          </View>
 
           {/* 中央：呼吸圆环 + 当前引导语 */}
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 40 }}>

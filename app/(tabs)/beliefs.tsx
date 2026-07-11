@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { runReframe } from '../../src/ai/deepseek';
 import { parseReframe } from '../../src/ai/reframeParse';
 import { addBelief, listBeliefs } from '../../src/data/beliefDao';
+import { getAiConsent, setAiConsent } from '../../src/services/settingsService';
 import type { Belief } from '../../src/types';
 import { AppText, Card, GhostButton, PrimaryButton, Screen, SoftInput } from '../../src/components';
 import { useTheme } from '../../src/theme';
@@ -110,6 +111,17 @@ export default function BeliefsScreen() {
 
   useFocusEffect(useCallback(() => { listBeliefs().then(setList); }, []));
 
+  /** 发送入口：第一次询问一次同意，之后直接发送。 */
+  const onSendPress = async () => {
+    if (await getAiConsent()) await confirmSend();
+    else setConfirming(true);
+  };
+
+  const acceptAndSend = async () => {
+    await setAiConsent();
+    await confirmSend();
+  };
+
   const confirmSend = async () => {
     setConfirming(false);
     setLoading(true);
@@ -165,15 +177,15 @@ export default function BeliefsScreen() {
               ...shadow.soft,
             }}
           />
-          {/* 发送前确认（内联，不用 Alert） */}
+          {/* 首次发送前确认一次（内联，不用 Alert；之后不再询问） */}
           {confirming ? (
             <Card radius="md" padding={18} style={{ gap: 14 }}>
               <AppText variant="caption" secondary style={{ lineHeight: 22 }}>
-                这句信念将发送给 DeepSeek，用于改写成新的频率。你的分享只属于你自己 · 已加密。
+                这句信念将发送给 DeepSeek，用于改写成新的频率。你的分享只属于你自己 · 已加密。只在第一次发送前问你这一次。
               </AppText>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <GhostButton label="取消" onPress={() => setConfirming(false)} style={{ flex: 1, height: 48 }} />
-                <PrimaryButton label="发送" onPress={confirmSend} style={{ flex: 1.4, height: 48 }} />
+                <PrimaryButton label="确认发送" onPress={acceptAndSend} style={{ flex: 1.4, height: 48 }} />
               </View>
             </Card>
           ) : null}
@@ -181,7 +193,7 @@ export default function BeliefsScreen() {
             glow
             label="收藏这张频率卡片"
             disabled={!input.trim() || loading || confirming}
-            onPress={() => setConfirming(true)}
+            onPress={onSendPress}
             style={{ height: 54 }}
           />
         </View>

@@ -42,6 +42,9 @@ export function addCoachMessage(m: Omit<CoachMessage, 'id' | 'createdAt'>): void
   rows.push({ ...m, id: genId(), createdAt: Date.now() });
   write(K.coach, rows);
 }
+export function deleteCoachMessage(id: string): void {
+  write(K.coach, read<CoachMessage>(K.coach).filter(r => r.id !== id));
+}
 export function listCoachMessages(entryId: string): CoachMessage[] {
   return read<CoachMessage>(K.coach)
     .filter(r => r.entryId === entryId)
