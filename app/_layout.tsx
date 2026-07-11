@@ -5,7 +5,7 @@ import { getDb } from '../src/data/db';
 
 export default function RootLayout() {
   useEffect(() => {
-    getDb();
+    getDb().catch((e) => console.error('DB 初始化失败', e));
   }, []);
 
   return (

@@ -6,8 +6,9 @@ import { getEntry, saveEntry, addCoachMessage, listCoachMessages } from '../../s
 import { runCoach } from '../../src/ai/deepseek';
 import type { JournalEntry, CoachMessage } from '../../src/types';
 
-const FIELD: Record<string, keyof JournalEntry> = {
-  trigger: 'trigger', admit: 'admitText', accept: 'admitText',
+// 'accept'（接纳）是交互式一步，不写入任何文本字段，所以不在此映射中。
+const FIELD: Partial<Record<string, keyof JournalEntry>> = {
+  trigger: 'trigger', admit: 'admitText',
   name: 'nameText', vent: 'ventText', reassure: 'reassureText',
 };
 
@@ -18,6 +19,7 @@ export default function JournalScreen() {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [streaming, setStreaming] = useState('');
   const [loading, setLoading] = useState(false);
+  const [acceptCount, setAcceptCount] = useState(0);
 
   const router = useRouter();
   const navigation = useNavigation();
@@ -40,9 +42,10 @@ export default function JournalScreen() {
   if (!entry) return <ActivityIndicator style={{ marginTop: 40 }} />;
 
   const step = JOURNAL_STEPS[stepIdx];
+  const isAccept = step.key === 'accept';
   const field = FIELD[step.key];
-  const value = (entry[field] as string) ?? '';
-  const update = (text: string) => setEntry({ ...entry, [field]: text });
+  const value = field ? ((entry[field] as string) ?? '') : '';
+  const update = (text: string) => { if (field) setEntry({ ...entry, [field]: text }); };
   const persist = async () => { await saveEntry(entry); };
 
   const askCoach = () => {
@@ -69,10 +72,17 @@ export default function JournalScreen() {
     <ScrollView contentContainerStyle={styles.c}>
       <Text style={styles.step}>第 {stepIdx + 1}/{JOURNAL_STEPS.length} 步 · {step.title}</Text>
       <Text style={styles.prompt}>{step.prompt}</Text>
-      <TextInput style={styles.input} multiline value={value} onChangeText={update} onBlur={persist} placeholder="在这里书写…" />
+      {isAccept ? (
+        <View style={styles.acceptBox}>
+          <Button title={`没关系（${acceptCount}/3）`} onPress={() => setAcceptCount(c => Math.min(c + 1, 3))} />
+          {acceptCount >= 3 && <Text style={styles.acceptDone}>很好，你已经在接纳它了。</Text>}
+        </View>
+      ) : (
+        <TextInput style={styles.input} multiline value={value} onChangeText={update} onBlur={persist} placeholder="在这里书写…" />
+      )}
       <View style={styles.nav}>
         <Button title="上一步" onPress={() => { persist(); setStepIdx(prevStep(stepIdx)); }} disabled={stepIdx === 0} />
-        <Button title="问教练" onPress={askCoach} />
+        {!isAccept && <Button title="问教练" onPress={askCoach} />}
         <Button title={isLastStep(stepIdx) ? '完成' : '下一步'} onPress={() => { persist(); if (isLastStep(stepIdx)) router.back(); else setStepIdx(nextStep(stepIdx)); }} />
       </View>
       <Text style={styles.h}>教练对话</Text>
@@ -92,4 +102,6 @@ const styles = StyleSheet.create({
   h: { fontSize: 16, fontWeight: '600', marginTop: 12 },
   ai: { backgroundColor: '#F3EEFA', padding: 8, borderRadius: 8 },
   me: { backgroundColor: '#EEF3FA', padding: 8, borderRadius: 8 },
+  acceptBox: { alignItems: 'center', gap: 8, paddingVertical: 12 },
+  acceptDone: { color: '#7A5Fb0' },
 });
