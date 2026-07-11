@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, Button, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Button, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { createEntry, listEntries } from '../../src/data/journalDao';
 import type { JournalEntry } from '../../src/types';
@@ -8,7 +8,14 @@ export default function TodayScreen() {
   const router = useRouter();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   useFocusEffect(useCallback(() => { listEntries().then(setEntries); }, []));
-  const start = async () => { const e = await createEntry(); router.push(`/journal/${e.id}`); };
+  const start = async () => {
+    try {
+      const e = await createEntry();
+      router.push(`/journal/${e.id}`);
+    } catch (err: any) {
+      Alert.alert('无法创建日记', err?.message ?? String(err));
+    }
+  };
   return (
     <View style={styles.c}>
       <Button title="开始一条阴影日记" onPress={start} />
