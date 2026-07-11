@@ -8,5 +8,9 @@ export async function addSession(s: Omit<MeditationSession, 'id' | 'createdAt'>)
 
 export async function listSessions(): Promise<MeditationSession[]> {
   const db = await getDb();
-  return db.getAllAsync<MeditationSession>(`SELECT * FROM meditation_sessions ORDER BY createdAt DESC`);
+  // SQLite 把 completed 存为 0/1，读回来要映射回 boolean，以符合 MeditationSession 的类型契约。
+  const rows = await db.getAllAsync<Omit<MeditationSession, 'completed'> & { completed: number }>(
+    `SELECT * FROM meditation_sessions ORDER BY createdAt DESC`
+  );
+  return rows.map(r => ({ ...r, completed: r.completed === 1 }));
 }

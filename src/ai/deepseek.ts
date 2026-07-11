@@ -54,5 +54,6 @@ export async function runReframe(limitingBelief: string, onDelta: (t: string) =>
   if (!apiKey) throw new Error('尚未配置 DeepSeek API Key，请到「我的」里填写。');
   const { buildReframeMessages } = await import('./prompts');
   const { fetch: expoFetch } = await import('expo/fetch');
+  // 信念改写刻意固定用 deepseek-reasoner（更强推理），不走用户在设置里选的默认模型。
   return streamChat({ apiKey, model: 'deepseek-reasoner', messages: buildReframeMessages(limitingBelief) }, onDelta, expoFetch as any);
 }
