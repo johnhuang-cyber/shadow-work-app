@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #EDEAE1; }
+    @keyframes breathe { 0%,100% { transform: scale(0.94); opacity: 0.75; } 50% { transform: scale(1.06); opacity: 1; } }
+    @keyframes breatheRing { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    @keyframes driftGlow { 0%,100% { opacity: 0.55; } 50% { opacity: 0.9; } }
+  </style>
+</helmet>
+
+<div style="background:#EDEAE1; min-height:100vh; padding:64px 56px 120px; box-sizing:border-box; font-family:'Inter','Noto Sans SC',sans-serif;">
+
+  <div style="margin-bottom:56px; max-width:760px;">
+    <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:15px; color:#C97B5A; letter-spacing:0.02em; margin-bottom:10px;">频率 · Frequency</div>
+    <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:40px; line-height:1.2; color:#2A2622; margin-bottom:14px;">暖沙 · 静谧 — 视觉设计稿</div>
+    <div style="font-size:17px; line-height:1.7; color:#8A8378; font-family:'Inter','Noto Sans SC',sans-serif;">一个私人的阴影工作与显化陪伴空间。以下是设计 token、九类核心场景（浅色 + 深色）、阴影日记补充步骤、教练加载/错误态、以及「我的频率卡」集合页的完整高保真稿（真机边框）。</div>
+  </div>
+
+  <!-- ============ TOKEN PANEL ============ -->
+  <div style="background:#FBF8F1; border-radius:28px; padding:40px 44px; margin-bottom:72px; box-shadow:0 12px 40px rgba(42,38,34,0.07); max-width:1240px;">
+    <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:24px; color:#2A2622; margin-bottom:28px;">设计 Token</div>
+
+    <div style="font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8A8378; margin-bottom:14px;">色板 · Colors</div>
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:36px;">
+      <sc-for list="{{ colorTokens }}" as="c" hint-placeholder-count="13">
+        <div style="border-radius:16px; overflow:hidden; border:1px solid rgba(42,38,34,0.08);">
+          <div style="height:64px; background:{{ c.hex }};"></div>
+          <div style="padding:10px 12px; background:#fff;">
+            <div style="font-size:13px; font-weight:600; color:#2A2622;">{{ c.name }}</div>
+            <div style="font-size:12px; color:#8A8378; font-family:monospace; margin-top:2px;">{{ c.hex }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8A8378; margin-bottom:14px;">字阶 · Type Scale</div>
+    <div style="display:flex; flex-direction:column; gap:0; margin-bottom:36px; border-radius:16px; border:1px solid rgba(42,38,34,0.08); overflow:hidden;">
+      <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="5">
+        <div style="display:flex; align-items:center; gap:24px; padding:16px 20px; border-bottom:1px solid rgba(42,38,34,0.06); background:#fff;">
+          <div style="width:90px; font-size:12px; font-weight:600; color:#C97B5A; text-transform:uppercase; letter-spacing:0.04em;">{{ t.name }}</div>
+          <div style="width:170px; font-size:12px; color:#8A8378;">{{ t.font }}<br/>{{ t.size }}px · {{ t.weight }}</div>
+          <div style="flex:1; font-family:'Fraunces','Noto Serif SC',serif; color:#2A2622; font-size:19px;">{{ t.sample }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px;">
+      <div>
+        <div style="font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8A8378; margin-bottom:14px;">间距 · Spacing (4pt)</div>
+        <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+          <sc-for list="{{ spacingScale }}" as="s" hint-placeholder-count="9">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:{{ s.v }}px; height:{{ s.v }}px; background:#EDD9C8; border-radius:4px;"></div>
+              <div style="font-size:11px; color:#8A8378;">{{ s.v }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8A8378; margin-bottom:14px;">圆角 &amp; 阴影</div>
+        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+          <sc-for list="{{ radiusScale }}" as="r" hint-placeholder-count="4">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:52px; height:52px; background:#F5F1E8; border-radius:{{ r.px }}px; box-shadow:0 6px 16px rgba(42,38,34,0.08); display:flex; align-items:center; justify-content:center; font-size:11px; color:#8A8378;">{{ r.name }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px; margin-top:36px;">
+      <div>
+        <div style="font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8A8378; margin-bottom:14px;">动效原则</div>
+        <div style="font-size:14px; line-height:1.8; color:#2A2622;">
+          · 缓入缓出（ease-in-out），时长 300–600ms，不用弹跳曲线<br/>
+          · "呼吸"节奏：4s 吸气 / 6s 呼气循环，用于圆环、进度点<br/>
+          · 步骤切换：轻微淡入 + 8px 位移，无滑页翻转感<br/>
+          · 完成态：柔光扩散 2–3s 后自然收束，不用弹窗/震动式提示<br/>
+          · 关键触点（记录完成、收藏卡片、接纳仪式）配柔和 haptic 反馈
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#8A8378; margin-bottom:14px;">图标 &amp; 无障碍</div>
+        <div style="font-size:14px; line-height:1.8; color:#2A2622;">
+          · 图标风格：细线（1.5px stroke），Lucide/Phosphor 一类，不用实心/emoji<br/>
+          · 触达区 ≥44×44pt，主按钮高度 56pt<br/>
+          · 正文与背景对比度 ≥4.5:1；#8A8378 仅用于非关键说明文字<br/>
+          · 支持系统字号放大；深色模式复用同一组语义 token
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREENS ============ -->
+  <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:24px; color:#2A2622; margin-bottom:28px;">核心场景 · 浅色</div>
+
+  <div style="display:flex; gap:48px; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- 1. 首页/今天 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">01 · 首页 / 今天</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:78px 28px 0;">
+          <div style="font-size:13px; color:#8A8378; letter-spacing:0.03em;">7 月 11 日 · 周六</div>
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:22px;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:32px; line-height:1.35; color:#2A2622;">此刻，你不需要<br/>成为任何人。</div>
+            <div style="font-size:16px; line-height:1.7; color:#8A8378; max-width:260px;">只需要，坐下来，<br/>和自己在一起。</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px; padding-bottom:28px;">
+            <div style="background:#C97B5A; color:#F5F1E8; border-radius:28px; height:58px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; box-shadow:0 10px 24px rgba(201,123,90,0.35);">陪自己坐一会儿</div>
+            <div style="text-align:center; font-size:14px; color:#8A8378; padding:8px 0;">查看过去的记录 →</div>
+          </div>
+          <div style="display:flex; justify-content:space-around; align-items:center; padding:14px 8px 30px; border-top:1px solid rgba(42,38,34,0.08);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5M6 10v9a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-9" stroke="#C97B5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 3v18M6 3c4 0 6 2 12 2v10c-6 0-8-2-12-2" stroke="#8A8378" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#8A8378" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="#8A8378" stroke-width="1.6"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#8A8378" stroke-width="1.6"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5" stroke="#8A8378" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 2. 阴影日记 · 看见 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">02 · 阴影日记 · 看见（步骤 2/5）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:70px 30px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#8A8378" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div style="font-size:13px; color:#8A8378;">退出</div>
+          </div>
+          <div style="display:flex; justify-content:center; gap:8px; margin:22px 0 8px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#C97B5A;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:26px; text-align:center;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:26px; line-height:1.5; color:#2A2622; padding:0 6px;">此刻，你感受到<br/>了什么？</div>
+            <div style="font-size:15px; color:#8A8378; line-height:1.7;">不必寻找答案，<br/>只需要如实说出来。</div>
+            <div style="background:#FBF8F1; border-radius:24px; padding:22px; min-height:120px; text-align:left; box-shadow:0 8px 24px rgba(42,38,34,0.05);">
+              <div style="font-size:16px; color:#B7AFA0; line-height:1.7;">我感到...</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; padding-bottom:36px;">
+            <div style="flex:1; height:54px; border-radius:26px; border:1px solid rgba(42,38,34,0.12); display:flex; align-items:center; justify-content:center; font-size:15px; color:#8A8378;">上一步</div>
+            <div style="flex:1.4; height:54px; border-radius:26px; background:#C97B5A; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#F5F1E8;">下一步</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 3. 阴影日记 · 接纳仪式 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">03 · 阴影日记 · 接纳（步骤 4/5）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:70px 30px 0;">
+          <div style="display:flex; justify-content:center; gap:8px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#C97B5A;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px;">
+            <div style="font-size:14px; color:#8A8378;">第 4 步 · 接纳</div>
+            <div style="width:190px; height:190px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;">
+              <div style="position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.28), rgba(201,123,90,0) 70%); animation:driftGlow 5s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:18px; border-radius:50%; border:1.5px solid rgba(201,123,90,0.35); animation:breatheRing 5s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:38px; border-radius:50%; background:#FBF8F1; box-shadow:0 8px 24px rgba(42,38,34,0.08); display:flex; align-items:center; justify-content:center;">
+                <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:19px; color:#2A2622;">没关系</div>
+              </div>
+            </div>
+            <div style="text-align:center; font-size:15px; color:#8A8378; line-height:1.7; padding:0 20px;">轻触圆环，对自己<br/>说三次「没关系」</div>
+            <div style="display:flex; gap:10px;">
+              <div style="width:10px; height:10px; border-radius:50%; background:#C97B5A;"></div>
+              <div style="width:10px; height:10px; border-radius:50%; background:#C97B5A;"></div>
+              <div style="width:10px; height:10px; border-radius:50%; border:1.5px solid #C97B5A;"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; padding-bottom:36px;">
+            <div style="flex:1; height:54px; border-radius:26px; border:1px solid rgba(42,38,34,0.12); display:flex; align-items:center; justify-content:center; font-size:15px; color:#8A8378;">上一步</div>
+            <div style="flex:1.4; height:54px; border-radius:26px; background:#EDD9C8; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#B49076;">再说一次</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 4. 教练对话 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">04 · 教练对话</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">教练陪伴</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; margin-top:10px; background:#EDE8DC; border-radius:100px; padding:6px 14px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="#8A8378" stroke-width="1.6"/><path d="M8 10V7a4 4 0 018 0v3" stroke="#8A8378" stroke-width="1.6"/></svg>
+              <div style="font-size:12px; color:#8A8378;">你的分享只属于你自己 · 已加密</div>
+            </div>
+          </div>
+          <div style="flex:1; overflow:hidden; padding:26px 28px; display:flex; flex-direction:column; gap:22px;">
+            <div style="display:flex; gap:12px;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#EDD9C8; flex-shrink:0; margin-top:2px;"></div>
+              <div style="font-size:16px; line-height:1.7; color:#2A2622;">谢谢你愿意说出来。<br/>这种感觉，你以前也<br/>遇到过吗？</div>
+            </div>
+            <div style="align-self:flex-end; max-width:80%; text-align:right;">
+              <div style="font-size:16px; line-height:1.7; color:#6E655A;">好像……每次别人不<br/>回应我，我都会觉得<br/>自己不重要。</div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#EDD9C8; flex-shrink:0;"></div>
+              <div style="display:flex; gap:5px;">
+                <div style="width:6px; height:6px; border-radius:50%; background:#C97B5A; opacity:0.9;"></div>
+                <div style="width:6px; height:6px; border-radius:50%; background:#C97B5A; opacity:0.6;"></div>
+                <div style="width:6px; height:6px; border-radius:50%; background:#C97B5A; opacity:0.3;"></div>
+              </div>
+              <div style="font-size:13px; color:#8A8378;">正在书写...</div>
+            </div>
+          </div>
+          <div style="padding:14px 20px 30px; display:flex; gap:10px; align-items:center;">
+            <div style="flex:1; background:#FBF8F1; border-radius:26px; height:52px; display:flex; align-items:center; padding:0 20px; font-size:15px; color:#B7AFA0; box-shadow:0 6px 18px rgba(42,38,34,0.05);">想说些什么...</div>
+            <div style="width:52px; height:52px; border-radius:50%; background:#C97B5A; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-7-6 16-2.5-7L4 12z" fill="#F5F1E8"/></svg>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 5. 冥想播放 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">05 · 冥想播放（沉浸态）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:linear-gradient(180deg,#1F1B2E 0%, #241E38 60%, #2A2148 100%); box-sizing:border-box; padding:70px 28px 0; position:relative; overflow:hidden;">
+          <div style="text-align:center; font-size:13px; color:rgba(245,241,232,0.5); letter-spacing:0.04em;">临在 · 呼吸练习</div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:40px; position:relative;">
+            <div style="width:230px; height:230px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;">
+              <div style="position:absolute; inset:-20px; border-radius:50%; background:radial-gradient(circle, rgba(110,139,150,0.35), rgba(110,139,150,0) 70%); animation:driftGlow 6s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:10px; border-radius:50%; border:1px solid rgba(245,241,232,0.18); animation:breatheRing 6s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:36px; border-radius:50%; background:rgba(245,241,232,0.06); border:1px solid rgba(245,241,232,0.14);"></div>
+            </div>
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:24px; line-height:1.6; color:#F5F1E8; text-align:center; max-width:260px;">吸气……<br/>感受此刻的重量</div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:22px; padding-bottom:40px;">
+            <div style="font-size:13px; color:rgba(245,241,232,0.45); letter-spacing:0.05em;">08:24</div>
+            <div style="display:flex; align-items:center; gap:34px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 4v16l-12-8 12-8z" fill="rgba(245,241,232,0.55)"/></svg>
+              <div style="width:60px; height:60px; border-radius:50%; background:rgba(245,241,232,0.12); border:1px solid rgba(245,241,232,0.2); display:flex; align-items:center; justify-content:center;">
+                <svg width="18" height="20" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="5" height="18" rx="1.5" fill="#F5F1E8"/><rect x="14" y="3" width="5" height="18" rx="1.5" fill="#F5F1E8"/></svg>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 4v16l12-8-12-8z" fill="rgba(245,241,232,0.55)"/></svg>
+            </div>
+            <div style="font-size:12px; color:rgba(245,241,232,0.4);">背景音 · 雨声轻响</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 6. 冥想 · 完成态 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">06 · 冥想 · 完成态</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(180deg,#1F1B2E 0%, #241E38 60%, #2A2148 100%); box-sizing:border-box; padding:0 40px; position:relative; overflow:hidden; gap:30px;">
+          <div style="width:170px; height:170px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.32), rgba(201,123,90,0) 72%); animation:driftGlow 5s ease-in-out infinite; position:absolute;"></div>
+          <div style="position:relative; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:26px; line-height:1.6; color:#F5F1E8; text-align:center;">此刻，<br/>你已完整。</div>
+          <div style="position:relative; font-size:14px; color:rgba(245,241,232,0.5); text-align:center; line-height:1.7;">你为自己，<br/>腾出了一段安静的时间。</div>
+          <div style="position:relative; margin-top:10px; font-size:13px; color:rgba(245,241,232,0.65); border:1px solid rgba(245,241,232,0.25); border-radius:100px; padding:12px 28px;">回到今天</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 7. 信念改写 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">07 · 信念改写</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:70px 28px 0;">
+          <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622; text-align:center;">信念改写</div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;">
+            <div style="width:100%; opacity:0.55;">
+              <div style="font-size:11px; letter-spacing:0.06em; color:#8A8378; text-align:center; margin-bottom:8px;">旧频率</div>
+              <div style="background:#EDE8DC; border-radius:18px; padding:16px 18px; text-align:center; font-size:15px; color:#6E655A; text-decoration:line-through; text-decoration-color:rgba(110,101,90,0.4);">我总是要足够好，<br/>才值得被爱</div>
+            </div>
+            <svg width="18" height="26" viewBox="0 0 18 26" fill="none"><path d="M9 1v22M9 23l-6-6M9 23l6-6" stroke="#C97B5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div style="width:100%;">
+              <div style="font-size:11px; letter-spacing:0.06em; color:#C97B5A; text-align:center; margin-bottom:10px;">新频率</div>
+              <div style="background:linear-gradient(160deg,#FBF8F1 0%, #F3E4D6 100%); border:1px solid rgba(201,123,90,0.25); border-radius:24px; padding:34px 22px; text-align:center; box-shadow:0 16px 32px rgba(201,123,90,0.16);">
+                <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:21px; line-height:1.6; color:#2A2622;">我值得被<br/>无条件地爱着</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 4px;">
+            <div style="font-size:14px; color:#2A2622;">设为每日提醒</div>
+            <div style="width:46px; height:28px; border-radius:100px; background:#C97B5A; display:flex; align-items:center; padding:3px;">
+              <div style="width:22px; height:22px; border-radius:50%; background:#fff; margin-left:auto;"></div>
+            </div>
+          </div>
+          <div style="height:54px; border-radius:26px; background:#C97B5A; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#F5F1E8; margin-bottom:36px;">收藏这张频率卡片</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 8. 状态/我的 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">08 · 状态 / 我的</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">我的空间</div>
+          </div>
+          <div style="flex:1; overflow:hidden; padding:24px 28px 0; display:flex; flex-direction:column; gap:28px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:14px 0;">
+              <div style="width:120px; height:120px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;">
+                <div style="position:absolute; inset:-14px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.3), rgba(201,123,90,0) 72%);"></div>
+                <div style="position:absolute; inset:0; border-radius:50%; background:#FBF8F1; box-shadow:0 8px 20px rgba(42,38,34,0.08); display:flex; align-items:center; justify-content:center;">
+                  <div style="font-family:'Fraunces','Noto Serif SC',serif; font-size:34px; color:#C97B5A;">7</div>
+                </div>
+              </div>
+              <div style="font-size:13px; color:#8A8378;">今日力量感</div>
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:#2A2622; margin-bottom:12px;">收藏的频率卡片</div>
+              <div style="display:flex; gap:12px; overflow:hidden;">
+                <div style="min-width:130px; height:88px; background:linear-gradient(160deg,#FBF8F1,#F3E4D6); border:1px solid rgba(201,123,90,0.2); border-radius:16px; padding:14px; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:13px; color:#2A2622; display:flex; align-items:center;">我值得被无条件地爱着</div>
+                <div style="min-width:130px; height:88px; background:linear-gradient(160deg,#FBF8F1,#DCE7E9); border:1px solid rgba(110,139,150,0.25); border-radius:16px; padding:14px; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:13px; color:#2A2622; display:flex; align-items:center;">我可以安心地被看见</div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; border-radius:20px; overflow:hidden; background:#FBF8F1;">
+              <div style="display:flex; align-items:center; gap:14px; padding:15px 18px; border-bottom:1px solid rgba(42,38,34,0.06);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a6 6 0 016 6v3l2 5H4l2-5V8a6 6 0 016-6z" stroke="#8A8378" stroke-width="1.6"/><path d="M9 20a3 3 0 006 0" stroke="#8A8378" stroke-width="1.6"/></svg>
+                <div style="flex:1; font-size:15px; color:#2A2622;">通知</div>
+                <svg width="7" height="12" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#B7AFA0" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="display:flex; align-items:center; gap:14px; padding:15px 18px; border-bottom:1px solid rgba(42,38,34,0.06);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="#8A8378" stroke-width="1.6"/><path d="M8 10V7a4 4 0 018 0v3" stroke="#8A8378" stroke-width="1.6"/></svg>
+                <div style="flex:1; font-size:15px; color:#2A2622;">隐私</div>
+                <svg width="7" height="12" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#B7AFA0" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="display:flex; align-items:center; gap:14px; padding:15px 18px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12.5A8.5 8.5 0 1111.5 4a7 7 0 008.5 8.5z" stroke="#8A8378" stroke-width="1.6"/></svg>
+                <div style="flex:1; font-size:15px; color:#2A2622;">深色模式</div>
+                <svg width="7" height="12" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#B7AFA0" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-around; align-items:center; padding:14px 8px 30px; border-top:1px solid rgba(42,38,34,0.08); margin-top:auto;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5M6 10v9a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-9" stroke="#8A8378" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 3v18M6 3c4 0 6 2 12 2v10c-6 0-8-2-12-2" stroke="#8A8378" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#8A8378" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="#8A8378" stroke-width="1.6"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#C97B5A" stroke-width="1.6"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5" stroke="#C97B5A" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 9. 空态 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">09 · 空态 · 过去的记录</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:66px 28px 0;">
+          <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">过去的记录</div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;">
+            <div style="width:110px; height:110px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.18), rgba(201,123,90,0.03) 75%); display:flex; align-items:center; justify-content:center;">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M4 19.5V6a2 2 0 012-2h8.5L20 8.5V18a2 2 0 01-2 2H6a2 2 0 01-2-2.5z" stroke="#C97B5A" stroke-width="1.4"/><path d="M8 12h8M8 15.5h5" stroke="#C97B5A" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <div style="text-align:center; font-size:16px; color:#2A2622; line-height:1.7;">这里还没有记录</div>
+            <div style="text-align:center; font-size:14px; color:#8A8378; line-height:1.7; max-width:230px;">慢慢来，你的故事会在<br/>这里被温柔地收藏。</div>
+            <div style="margin-top:6px; border:1px solid rgba(42,38,34,0.15); border-radius:100px; padding:13px 26px; font-size:14px; color:#2A2622;">开始第一次记录</div>
+          </div>
+          <div style="height:60px;"></div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <!-- ============ DARK SCREENS ============ -->
+  <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:24px; color:#2A2622; margin:64px 0 28px;">核心场景 · 深色</div>
+  <div style="display:flex; gap:48px; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- 10. 首页/今天 dark -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">10 · 首页 / 今天（深色）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#1F1B2E; box-sizing:border-box; padding:78px 28px 0;">
+          <div style="font-size:13px; color:rgba(245,241,232,0.5); letter-spacing:0.03em;">7 月 11 日 · 周六</div>
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:22px;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:32px; line-height:1.35; color:#F5F1E8;">此刻，你不需要<br/>成为任何人。</div>
+            <div style="font-size:16px; line-height:1.7; color:rgba(245,241,232,0.55); max-width:260px;">只需要，坐下来，<br/>和自己在一起。</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px; padding-bottom:28px;">
+            <div style="background:#D9916D; color:#1F1B2E; border-radius:28px; height:58px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; box-shadow:0 10px 28px rgba(201,123,90,0.3);">陪自己坐一会儿</div>
+            <div style="text-align:center; font-size:14px; color:rgba(245,241,232,0.5); padding:8px 0;">查看过去的记录 →</div>
+          </div>
+          <div style="display:flex; justify-content:space-around; align-items:center; padding:14px 8px 30px; border-top:1px solid rgba(245,241,232,0.12);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5M6 10v9a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-9" stroke="#D9916D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 3v18M6 3c4 0 6 2 12 2v10c-6 0-8-2-12-2" stroke="rgba(245,241,232,0.45)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="rgba(245,241,232,0.45)" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="rgba(245,241,232,0.45)" stroke-width="1.6"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="rgba(245,241,232,0.45)" stroke-width="1.6"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5" stroke="rgba(245,241,232,0.45)" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 11. 阴影日记·看见 dark -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">11 · 阴影日记 · 看见（深色）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#1F1B2E; box-sizing:border-box; padding:70px 30px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="rgba(245,241,232,0.45)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div style="font-size:13px; color:rgba(245,241,232,0.45);">退出</div>
+          </div>
+          <div style="display:flex; justify-content:center; gap:8px; margin:22px 0 8px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#D9916D;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:26px; text-align:center;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:26px; line-height:1.5; color:#F5F1E8; padding:0 6px;">此刻，你感受到<br/>了什么？</div>
+            <div style="font-size:15px; color:rgba(245,241,232,0.5); line-height:1.7;">不必寻找答案，<br/>只需要如实说出来。</div>
+            <div style="background:#2A2440; border-radius:24px; padding:22px; min-height:120px; text-align:left; box-shadow:0 8px 24px rgba(0,0,0,0.25);">
+              <div style="font-size:16px; color:rgba(245,241,232,0.3); line-height:1.7;">我感到...</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; padding-bottom:36px;">
+            <div style="flex:1; height:54px; border-radius:26px; border:1px solid rgba(245,241,232,0.18); display:flex; align-items:center; justify-content:center; font-size:15px; color:rgba(245,241,232,0.55);">上一步</div>
+            <div style="flex:1.4; height:54px; border-radius:26px; background:#D9916D; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#1F1B2E;">下一步</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 12. 阴影日记·接纳 dark -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">12 · 阴影日记 · 接纳（深色）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#1F1B2E; box-sizing:border-box; padding:70px 30px 0;">
+          <div style="display:flex; justify-content:center; gap:8px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#D9916D;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:rgba(245,241,232,0.18);"></div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px;">
+            <div style="font-size:14px; color:rgba(245,241,232,0.45);">第 4 步 · 接纳</div>
+            <div style="width:190px; height:190px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;">
+              <div style="position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.32), rgba(201,123,90,0) 70%); animation:driftGlow 5s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:18px; border-radius:50%; border:1.5px solid rgba(217,145,109,0.4); animation:breatheRing 5s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:38px; border-radius:50%; background:#2A2440; box-shadow:0 8px 24px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center;">
+                <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:19px; color:#F5F1E8;">没关系</div>
+              </div>
+            </div>
+            <div style="text-align:center; font-size:15px; color:rgba(245,241,232,0.5); line-height:1.7; padding:0 20px;">轻触圆环，对自己<br/>说三次「没关系」</div>
+            <div style="display:flex; gap:10px;">
+              <div style="width:10px; height:10px; border-radius:50%; background:#D9916D;"></div>
+              <div style="width:10px; height:10px; border-radius:50%; background:#D9916D;"></div>
+              <div style="width:10px; height:10px; border-radius:50%; border:1.5px solid #D9916D;"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; padding-bottom:36px;">
+            <div style="flex:1; height:54px; border-radius:26px; border:1px solid rgba(245,241,232,0.18); display:flex; align-items:center; justify-content:center; font-size:15px; color:rgba(245,241,232,0.55);">上一步</div>
+            <div style="flex:1.4; height:54px; border-radius:26px; background:rgba(201,123,90,0.22); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#D9916D;">再说一次</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 13. 教练对话 dark -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">13 · 教练对话（深色）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#1F1B2E; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#F5F1E8;">教练陪伴</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; margin-top:10px; background:#2A2440; border-radius:100px; padding:6px 14px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="rgba(245,241,232,0.5)" stroke-width="1.6"/><path d="M8 10V7a4 4 0 018 0v3" stroke="rgba(245,241,232,0.5)" stroke-width="1.6"/></svg>
+              <div style="font-size:12px; color:rgba(245,241,232,0.5);">你的分享只属于你自己 · 已加密</div>
+            </div>
+          </div>
+          <div style="flex:1; overflow:hidden; padding:26px 28px; display:flex; flex-direction:column; gap:22px;">
+            <div style="display:flex; gap:12px;">
+              <div style="width:30px; height:30px; border-radius:50%; background:rgba(201,123,90,0.28); flex-shrink:0; margin-top:2px;"></div>
+              <div style="font-size:16px; line-height:1.7; color:#F5F1E8;">谢谢你愿意说出来。<br/>这种感觉，你以前也<br/>遇到过吗？</div>
+            </div>
+            <div style="align-self:flex-end; max-width:80%; text-align:right;">
+              <div style="font-size:16px; line-height:1.7; color:rgba(245,241,232,0.55);">好像……每次别人不<br/>回应我，我都会觉得<br/>自己不重要。</div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <div style="width:30px; height:30px; border-radius:50%; background:rgba(201,123,90,0.28); flex-shrink:0;"></div>
+              <div style="display:flex; gap:5px;">
+                <div style="width:6px; height:6px; border-radius:50%; background:#D9916D; opacity:0.9;"></div>
+                <div style="width:6px; height:6px; border-radius:50%; background:#D9916D; opacity:0.6;"></div>
+                <div style="width:6px; height:6px; border-radius:50%; background:#D9916D; opacity:0.3;"></div>
+              </div>
+              <div style="font-size:13px; color:rgba(245,241,232,0.45);">正在书写...</div>
+            </div>
+          </div>
+          <div style="padding:14px 20px 30px; display:flex; gap:10px; align-items:center;">
+            <div style="flex:1; background:#2A2440; border-radius:26px; height:52px; display:flex; align-items:center; padding:0 20px; font-size:15px; color:rgba(245,241,232,0.35); box-shadow:0 6px 18px rgba(0,0,0,0.2);">想说些什么...</div>
+            <div style="width:52px; height:52px; border-radius:50%; background:#D9916D; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-7-6 16-2.5-7L4 12z" fill="#1F1B2E"/></svg>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 14. 冥想播放 dark (与05一致，沉浸态本身即深色) -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">14 · 冥想播放（深色，同 05）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:linear-gradient(180deg,#1F1B2E 0%, #241E38 60%, #2A2148 100%); box-sizing:border-box; padding:70px 28px 0; position:relative; overflow:hidden;">
+          <div style="text-align:center; font-size:13px; color:rgba(245,241,232,0.5); letter-spacing:0.04em;">临在 · 呼吸练习</div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:40px; position:relative;">
+            <div style="width:230px; height:230px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;">
+              <div style="position:absolute; inset:-20px; border-radius:50%; background:radial-gradient(circle, rgba(110,139,150,0.35), rgba(110,139,150,0) 70%); animation:driftGlow 6s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:10px; border-radius:50%; border:1px solid rgba(245,241,232,0.18); animation:breatheRing 6s ease-in-out infinite;"></div>
+              <div style="position:absolute; inset:36px; border-radius:50%; background:rgba(245,241,232,0.06); border:1px solid rgba(245,241,232,0.14);"></div>
+            </div>
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:24px; line-height:1.6; color:#F5F1E8; text-align:center; max-width:260px;">吸气……<br/>感受此刻的重量</div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:22px; padding-bottom:40px;">
+            <div style="font-size:13px; color:rgba(245,241,232,0.45); letter-spacing:0.05em;">08:24</div>
+            <div style="display:flex; align-items:center; gap:34px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 4v16l-12-8 12-8z" fill="rgba(245,241,232,0.55)"/></svg>
+              <div style="width:60px; height:60px; border-radius:50%; background:rgba(245,241,232,0.12); border:1px solid rgba(245,241,232,0.2); display:flex; align-items:center; justify-content:center;">
+                <svg width="18" height="20" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="5" height="18" rx="1.5" fill="#F5F1E8"/><rect x="14" y="3" width="5" height="18" rx="1.5" fill="#F5F1E8"/></svg>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 4v16l12-8-12-8z" fill="rgba(245,241,232,0.55)"/></svg>
+            </div>
+            <div style="font-size:12px; color:rgba(245,241,232,0.4);">背景音 · 雨声轻响</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 15. 冥想完成态 dark (与06一致) -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">15 · 冥想 · 完成态（深色，同 06）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(180deg,#1F1B2E 0%, #241E38 60%, #2A2148 100%); box-sizing:border-box; padding:0 40px; position:relative; overflow:hidden; gap:30px;">
+          <div style="width:170px; height:170px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.32), rgba(201,123,90,0) 72%); animation:driftGlow 5s ease-in-out infinite; position:absolute;"></div>
+          <div style="position:relative; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:26px; line-height:1.6; color:#F5F1E8; text-align:center;">此刻，<br/>你已完整。</div>
+          <div style="position:relative; font-size:14px; color:rgba(245,241,232,0.5); text-align:center; line-height:1.7;">你为自己，<br/>腾出了一段安静的时间。</div>
+          <div style="position:relative; margin-top:10px; font-size:13px; color:rgba(245,241,232,0.65); border:1px solid rgba(245,241,232,0.25); border-radius:100px; padding:12px 28px;">回到今天</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 16. 信念改写 dark -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">16 · 信念改写（深色）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#1F1B2E; box-sizing:border-box; padding:70px 28px 0;">
+          <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#F5F1E8; text-align:center;">信念改写</div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;">
+            <div style="width:100%; opacity:0.6;">
+              <div style="font-size:11px; letter-spacing:0.06em; color:rgba(245,241,232,0.4); text-align:center; margin-bottom:8px;">旧频率</div>
+              <div style="background:#2A2440; border-radius:18px; padding:16px 18px; text-align:center; font-size:15px; color:rgba(245,241,232,0.5); text-decoration:line-through; text-decoration-color:rgba(245,241,232,0.3);">我总是要足够好，<br/>才值得被爱</div>
+            </div>
+            <svg width="18" height="26" viewBox="0 0 18 26" fill="none"><path d="M9 1v22M9 23l-6-6M9 23l6-6" stroke="#D9916D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div style="width:100%;">
+              <div style="font-size:11px; letter-spacing:0.06em; color:#D9916D; text-align:center; margin-bottom:10px;">新频率</div>
+              <div style="background:linear-gradient(160deg,#2A2440 0%, #34294A 100%); border:1px solid rgba(217,145,109,0.3); border-radius:24px; padding:34px 22px; text-align:center; box-shadow:0 16px 32px rgba(0,0,0,0.35);">
+                <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:21px; line-height:1.6; color:#F5F1E8;">我值得被<br/>无条件地爱着</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 4px;">
+            <div style="font-size:14px; color:#F5F1E8;">设为每日提醒</div>
+            <div style="width:46px; height:28px; border-radius:100px; background:#D9916D; display:flex; align-items:center; padding:3px;">
+              <div style="width:22px; height:22px; border-radius:50%; background:#1F1B2E; margin-left:auto;"></div>
+            </div>
+          </div>
+          <div style="height:54px; border-radius:26px; background:#D9916D; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#1F1B2E; margin-bottom:36px;">收藏这张频率卡片</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 17. 状态/我的 dark -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">17 · 状态 / 我的（深色）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#1F1B2E; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#F5F1E8;">我的空间</div>
+          </div>
+          <div style="flex:1; overflow:hidden; padding:24px 28px 0; display:flex; flex-direction:column; gap:28px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:14px 0;">
+              <div style="width:120px; height:120px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;">
+                <div style="position:absolute; inset:-14px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.32), rgba(201,123,90,0) 72%);"></div>
+                <div style="position:absolute; inset:0; border-radius:50%; background:#2A2440; box-shadow:0 8px 20px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center;">
+                  <div style="font-family:'Fraunces','Noto Serif SC',serif; font-size:34px; color:#D9916D;">7</div>
+                </div>
+              </div>
+              <div style="font-size:13px; color:rgba(245,241,232,0.5);">今日力量感</div>
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:#F5F1E8; margin-bottom:12px;">收藏的频率卡片</div>
+              <div style="display:flex; gap:12px; overflow:hidden;">
+                <div style="min-width:130px; height:88px; background:linear-gradient(160deg,#2A2440,#34294A); border:1px solid rgba(217,145,109,0.3); border-radius:16px; padding:14px; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:13px; color:#F5F1E8; display:flex; align-items:center;">我值得被无条件地爱着</div>
+                <div style="min-width:130px; height:88px; background:linear-gradient(160deg,#2A2440,#2A3A40); border:1px solid rgba(134,165,175,0.3); border-radius:16px; padding:14px; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:13px; color:#F5F1E8; display:flex; align-items:center;">我可以安心地被看见</div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; border-radius:20px; overflow:hidden; background:#2A2440;">
+              <div style="display:flex; align-items:center; gap:14px; padding:15px 18px; border-bottom:1px solid rgba(245,241,232,0.08);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a6 6 0 016 6v3l2 5H4l2-5V8a6 6 0 016-6z" stroke="rgba(245,241,232,0.5)" stroke-width="1.6"/><path d="M9 20a3 3 0 006 0" stroke="rgba(245,241,232,0.5)" stroke-width="1.6"/></svg>
+                <div style="flex:1; font-size:15px; color:#F5F1E8;">通知</div>
+                <svg width="7" height="12" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="rgba(245,241,232,0.3)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="display:flex; align-items:center; gap:14px; padding:15px 18px; border-bottom:1px solid rgba(245,241,232,0.08);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="rgba(245,241,232,0.5)" stroke-width="1.6"/><path d="M8 10V7a4 4 0 018 0v3" stroke="rgba(245,241,232,0.5)" stroke-width="1.6"/></svg>
+                <div style="flex:1; font-size:15px; color:#F5F1E8;">隐私</div>
+                <svg width="7" height="12" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="rgba(245,241,232,0.3)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="display:flex; align-items:center; gap:14px; padding:15px 18px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12.5A8.5 8.5 0 1111.5 4a7 7 0 008.5 8.5z" stroke="rgba(245,241,232,0.5)" stroke-width="1.6"/></svg>
+                <div style="flex:1; font-size:15px; color:#F5F1E8;">深色模式</div>
+                <svg width="7" height="12" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="rgba(245,241,232,0.3)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-around; align-items:center; padding:14px 8px 30px; border-top:1px solid rgba(245,241,232,0.12); margin-top:auto;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5M6 10v9a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-9" stroke="rgba(245,241,232,0.45)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 3v18M6 3c4 0 6 2 12 2v10c-6 0-8-2-12-2" stroke="rgba(245,241,232,0.45)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="rgba(245,241,232,0.45)" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="rgba(245,241,232,0.45)" stroke-width="1.6"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#D9916D" stroke-width="1.6"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5" stroke="#D9916D" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 18. 空态 dark -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">18 · 空态 · 过去的记录（深色）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#1F1B2E; box-sizing:border-box; padding:66px 28px 0;">
+          <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#F5F1E8;">过去的记录</div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;">
+            <div style="width:110px; height:110px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.28), rgba(201,123,90,0.03) 75%); display:flex; align-items:center; justify-content:center;">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M4 19.5V6a2 2 0 012-2h8.5L20 8.5V18a2 2 0 01-2 2H6a2 2 0 01-2-2.5z" stroke="#D9916D" stroke-width="1.4"/><path d="M8 12h8M8 15.5h5" stroke="#D9916D" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <div style="text-align:center; font-size:16px; color:#F5F1E8; line-height:1.7;">这里还没有记录</div>
+            <div style="text-align:center; font-size:14px; color:rgba(245,241,232,0.5); line-height:1.7; max-width:230px;">慢慢来，你的故事会在<br/>这里被温柔地收藏。</div>
+            <div style="margin-top:6px; border:1px solid rgba(245,241,232,0.22); border-radius:100px; padding:13px 26px; font-size:14px; color:#F5F1E8;">开始第一次记录</div>
+          </div>
+          <div style="height:60px;"></div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <!-- ============ JOURNAL MISSING STEPS ============ -->
+  <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:24px; color:#2A2622; margin:64px 0 28px;">阴影日记 · 补充步骤</div>
+  <div style="display:flex; gap:48px; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- 19. 触发点 step1 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">19 · 阴影日记 · 触发点（步骤 1/5）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:70px 30px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#8A8378" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div style="font-size:13px; color:#8A8378;">退出</div>
+          </div>
+          <div style="display:flex; justify-content:center; gap:8px; margin:22px 0 8px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:#C97B5A;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:30px; text-align:center;">
+            <div style="font-size:13px; color:#C97B5A; letter-spacing:0.04em;">第 1 步 · 触发点</div>
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:26px; line-height:1.5; color:#2A2622; padding:0 6px;">刚刚，<br/>发生了什么？</div>
+            <div style="font-size:15px; color:#8A8378; line-height:1.8; max-width:260px; margin:0 auto;">不必分析、不必评判，<br/>只是轻轻回想那个瞬间。</div>
+            <div style="background:#FBF8F1; border-radius:24px; padding:22px; min-height:100px; text-align:left; box-shadow:0 8px 24px rgba(42,38,34,0.05);">
+              <div style="font-size:16px; color:#B7AFA0; line-height:1.7;">那时候，我...</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; padding-bottom:36px;">
+            <div style="flex:1; height:54px; border-radius:26px; border:1px solid rgba(42,38,34,0.1); display:flex; align-items:center; justify-content:center; font-size:15px; color:#B7AFA0;">先不记录</div>
+            <div style="flex:1.4; height:54px; border-radius:26px; background:#C97B5A; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#F5F1E8;">继续</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 20. 宣泄 step3 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">20 · 阴影日记 · 宣泄（步骤 3/5）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:70px 28px 0;">
+          <div style="display:flex; justify-content:center; gap:8px; margin-bottom:22px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#C97B5A;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#EDD9C8;"></div>
+          </div>
+          <div style="text-align:center; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:22px; color:#2A2622; margin-bottom:8px;">让它，都写出来</div>
+          <div style="text-align:center; font-size:14px; color:#8A8378; margin-bottom:20px;">这里没有对错，尽情宣泄</div>
+          <div style="flex:1; background:#FBF8F1; border-radius:24px; padding:24px; box-shadow:0 8px 24px rgba(42,38,34,0.05); overflow:hidden;">
+            <div style="font-size:16px; line-height:1.9; color:#4A4238;">我一直觉得，只要我不够好，就没有人会真的留下来……<span style="display:inline-block; width:2px; height:18px; background:#C97B5A; vertical-align:middle; margin-left:2px;"></span></div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:20px 0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="#8A8378" stroke-width="1.6"/><path d="M8 10V7a4 4 0 018 0v3" stroke="#8A8378" stroke-width="1.6"/></svg>
+            <div style="font-size:13px; color:#8A8378;">说给教练听</div>
+          </div>
+          <div style="display:flex; gap:12px; padding-bottom:36px;">
+            <div style="flex:1; height:54px; border-radius:26px; border:1px solid rgba(42,38,34,0.1); display:flex; align-items:center; justify-content:center; font-size:15px; color:#8A8378;">上一步</div>
+            <div style="flex:1.4; height:54px; border-radius:26px; background:#C97B5A; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; color:#F5F1E8;">写完了</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 21. 安抚+完成收束 step5 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">21 · 阴影日记 · 安抚 + 完成收束（步骤 5/5）</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#F5F1E8; box-sizing:border-box; padding:0 36px; position:relative; overflow:hidden; gap:26px;">
+          <div style="width:190px; height:190px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.24), rgba(201,123,90,0) 72%); animation:driftGlow 5s ease-in-out infinite; position:absolute;"></div>
+          <div style="position:relative; font-size:13px; color:#C97B5A; letter-spacing:0.04em;">第 5 步 · 安抚</div>
+          <div style="position:relative; font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:23px; line-height:1.6; color:#2A2622; text-align:center;">"谢谢你，<br/>一直这么努力地保护我。"</div>
+          <div style="position:relative; font-size:14px; color:#8A8378; text-align:center; line-height:1.7; max-width:250px;">你已经把这份感受，<br/>好好地接住了。</div>
+          <div style="position:relative; margin-top:8px; background:#C97B5A; color:#F5F1E8; border-radius:100px; padding:14px 30px; font-size:14px; font-weight:600; box-shadow:0 10px 24px rgba(201,123,90,0.3);">完成今天的记录</div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <!-- ============ LOADING & ERROR STATES ============ -->
+  <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:24px; color:#2A2622; margin:64px 0 28px;">教练 · 加载 &amp; 错误态</div>
+  <div style="display:flex; gap:48px; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- 22. 教练等待态 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">22 · 教练 · 等待态</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">教练陪伴</div>
+          </div>
+          <div style="flex:1; padding:26px 28px; display:flex; flex-direction:column; gap:22px;">
+            <div style="align-self:flex-end; max-width:80%; text-align:right;">
+              <div style="font-size:16px; line-height:1.7; color:#6E655A;">我今天真的很累，<br/>觉得自己什么都做不好。</div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:18px; padding-bottom:60px;">
+            <div style="width:64px; height:64px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;">
+              <div style="position:absolute; inset:-10px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.22), rgba(201,123,90,0) 72%); animation:driftGlow 3.4s ease-in-out infinite;"></div>
+              <div style="display:flex; gap:6px;">
+                <div style="width:8px; height:8px; border-radius:50%; background:#C97B5A; animation:breathe 1.6s ease-in-out infinite;"></div>
+                <div style="width:8px; height:8px; border-radius:50%; background:#C97B5A; animation:breathe 1.6s ease-in-out infinite 0.2s;"></div>
+                <div style="width:8px; height:8px; border-radius:50%; background:#C97B5A; animation:breathe 1.6s ease-in-out infinite 0.4s;"></div>
+              </div>
+            </div>
+            <div style="font-size:14px; color:#8A8378;">教练正在感受你写的话...</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 23. 网络失败 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">23 · 教练 · 网络失败</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">教练陪伴</div>
+          </div>
+          <div style="flex:1; padding:26px 28px; display:flex; flex-direction:column; gap:22px;">
+            <div style="align-self:flex-end; max-width:80%; text-align:right;">
+              <div style="font-size:16px; line-height:1.7; color:#6E655A;">我今天真的很累，<br/>觉得自己什么都做不好。</div>
+            </div>
+            <div style="align-self:center; text-align:center; margin-top:18px; display:flex; flex-direction:column; align-items:center; gap:14px; padding:0 12px;">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 3l9 16H3l9-16z" stroke="#B5493A" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 10v4" stroke="#B5493A" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="17" r="0.8" fill="#B5493A"/></svg>
+              <div style="font-size:14px; color:#8A8378; line-height:1.7;">连接暂时断了一下，<br/>先把想说的留在这里，稍后再试。</div>
+              <div style="font-size:13px; color:#C97B5A; border:1px solid rgba(201,123,90,0.35); border-radius:100px; padding:9px 20px;">重新连接</div>
+            </div>
+          </div>
+          <div style="padding:14px 20px 30px; display:flex; gap:10px; align-items:center;">
+            <div style="flex:1; background:#FBF8F1; border-radius:26px; height:52px; display:flex; align-items:center; padding:0 20px; font-size:15px; color:#2A2622; box-shadow:0 6px 18px rgba(42,38,34,0.05);">觉得自己什么都做不好</div>
+            <div style="width:52px; height:52px; border-radius:50%; background:#EDD9C8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-7-6 16-2.5-7L4 12z" fill="#C97B5A"/></svg>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 24. 未配置API Key -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">24 · 教练 · 未配置 API Key</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">教练陪伴</div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:0 30px; text-align:center;">
+            <div style="width:64px; height:64px; border-radius:50%; background:#EDD9C8; display:flex; align-items:center; justify-content:center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#C97B5A" stroke-width="1.6"/><path d="M12 8v5" stroke="#C97B5A" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16" r="0.9" fill="#C97B5A"/></svg>
+            </div>
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:19px; color:#2A2622; line-height:1.6;">教练还没有准备好</div>
+            <div style="font-size:14px; color:#8A8378; line-height:1.7;">去「我的」里连接一下，<br/>就可以开始对话了。<br/>你写下的内容不会因此丢失。</div>
+            <div style="margin-top:6px; background:#C97B5A; color:#F5F1E8; border-radius:100px; padding:12px 28px; font-size:14px; font-weight:600;">前往设置</div>
+          </div>
+          <div style="height:60px;"></div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <!-- ============ BELIEF CARD COLLECTION ============ -->
+  <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:24px; color:#2A2622; margin:64px 0 28px;">我的频率卡</div>
+  <div style="display:flex; gap:48px; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- 25. 频率卡卡墙 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">25 · 我的频率卡 · 卡墙</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box;">
+          <div style="padding:66px 28px 0;">
+            <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">我的频率卡</div>
+            <div style="font-size:13px; color:#8A8378; margin-top:6px;">3 张卡片 · 轻触翻看蜕变</div>
+          </div>
+          <div style="flex:1; overflow:hidden; padding:26px 24px 0; display:flex; flex-direction:column; gap:18px;">
+            <div style="background:linear-gradient(160deg,#FBF8F1 0%, #F3E4D6 100%); border:1px solid rgba(201,123,90,0.25); border-radius:22px; padding:22px 24px; box-shadow:0 12px 28px rgba(201,123,90,0.14); position:relative;">
+              <div style="font-size:11px; letter-spacing:0.05em; color:#C97B5A; margin-bottom:8px;">新频率</div>
+              <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:19px; line-height:1.5; color:#2A2622;">我值得被无条件地爱着</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+                <div style="font-size:11px; color:#B49076;">旧：我总是要足够好才值得被爱</div>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-9.7-9.1C.6 8.4 2.2 5 5.6 5c1.9 0 3.3 1 4.4 2.4C11.1 6 12.5 5 14.4 5c3.4 0 5 3.4 3.3 6.9C19.5 16.4 12 21 12 21z" fill="#C97B5A"/></svg>
+              </div>
+            </div>
+            <div style="background:linear-gradient(160deg,#FBF8F1 0%, #E4EEEF 100%); border:1px solid rgba(110,139,150,0.28); border-radius:22px; padding:22px 24px; box-shadow:0 12px 28px rgba(110,139,150,0.12);">
+              <div style="font-size:11px; letter-spacing:0.05em; color:#6E8B96; margin-bottom:8px;">新频率</div>
+              <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:19px; line-height:1.5; color:#2A2622;">我可以安心地被看见</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+                <div style="font-size:11px; color:#8FA8AE;">旧：被注意到是危险的</div>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-9.7-9.1C.6 8.4 2.2 5 5.6 5c1.9 0 3.3 1 4.4 2.4C11.1 6 12.5 5 14.4 5c3.4 0 5 3.4 3.3 6.9C19.5 16.4 12 21 12 21z" fill="#6E8B96"/></svg>
+              </div>
+            </div>
+            <div style="background:#FBF8F1; border:1px dashed rgba(42,38,34,0.15); border-radius:22px; padding:22px 24px; display:flex; align-items:center; justify-content:center; color:#B7AFA0; font-size:13px;">再收藏一张，让新的频率生根</div>
+          </div>
+          <div style="height:36px;"></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 25b. 频率卡详情/每日提醒 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">25b · 频率卡 · 详情与每日提醒</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:70px 30px 0;">
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;">
+            <div style="width:100%; opacity:0.5;">
+              <div style="font-size:11px; letter-spacing:0.06em; color:#8A8378; text-align:center; margin-bottom:8px;">旧频率</div>
+              <div style="background:#EDE8DC; border-radius:18px; padding:14px 18px; text-align:center; font-size:14px; color:#6E655A; text-decoration:line-through; text-decoration-color:rgba(110,101,90,0.4);">我总是要足够好，才值得被爱</div>
+            </div>
+            <div style="background:linear-gradient(160deg,#FBF8F1 0%, #F3E4D6 100%); border:1px solid rgba(201,123,90,0.25); border-radius:24px; padding:36px 24px; text-align:center; box-shadow:0 16px 32px rgba(201,123,90,0.16); width:100%;">
+              <div style="font-family:'Fraunces','Noto Serif SC',serif; font-style:italic; font-size:22px; line-height:1.6; color:#2A2622;">我值得被<br/>无条件地爱着</div>
+              <div style="font-size:12px; color:#B49076; margin-top:14px;">收藏于 7 月 3 日</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 4px;">
+            <div>
+              <div style="font-size:14px; color:#2A2622;">每日提醒</div>
+              <div style="font-size:12px; color:#8A8378; margin-top:2px;">每天早上 8:00 温柔地提醒你</div>
+            </div>
+            <div style="width:46px; height:28px; border-radius:100px; background:#C97B5A; display:flex; align-items:center; padding:3px; flex-shrink:0;">
+              <div style="width:22px; height:22px; border-radius:50%; background:#fff; margin-left:auto;"></div>
+            </div>
+          </div>
+          <div style="height:54px; border-radius:26px; border:1px solid rgba(42,38,34,0.12); display:flex; align-items:center; justify-content:center; font-size:15px; color:#8A8378; margin-bottom:36px;">从这次改写，重新看一遍</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 26. 频率卡空态 -->
+    <div>
+      <div style="font-size:14px; font-weight:600; color:#2A2622; margin-bottom:14px;">26 · 我的频率卡 · 空态</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#F5F1E8; box-sizing:border-box; padding:66px 28px 0;">
+          <div style="font-family:'Fraunces','Noto Serif SC',serif; font-weight:500; font-size:22px; color:#2A2622;">我的频率卡</div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;">
+            <div style="width:110px; height:110px; border-radius:50%; background:radial-gradient(circle, rgba(201,123,90,0.18), rgba(201,123,90,0.03) 75%); display:flex; align-items:center; justify-content:center;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-9.7-9.1C.6 8.4 2.2 5 5.6 5c1.9 0 3.3 1 4.4 2.4C11.1 6 12.5 5 14.4 5c3.4 0 5 3.4 3.3 6.9C19.5 16.4 12 21 12 21z" stroke="#C97B5A" stroke-width="1.4"/></svg>
+            </div>
+            <div style="text-align:center; font-size:16px; color:#2A2622; line-height:1.7;">还没有频率卡</div>
+            <div style="text-align:center; font-size:14px; color:#8A8378; line-height:1.7; max-width:230px;">从一次信念改写开始，<br/>把新的频率，留在身边。</div>
+            <div style="margin-top:6px; background:#C97B5A; color:#F5F1E8; border-radius:100px; padding:13px 28px; font-size:14px; font-weight:600;">开始信念改写</div>
+          </div>
+          <div style="height:60px;"></div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colorTokens: [
+        { name: '背景 · 主', hex: '#F5F1E8' },
+        { name: '背景 · 沉浸/深色', hex: '#1F1B2E' },
+        { name: '表层 · 卡片', hex: '#FBF8F1' },
+        { name: '表层 · 深色卡片', hex: '#2A2440' },
+        { name: '文字 · 主', hex: '#2A2622' },
+        { name: '文字 · 次', hex: '#8A8378' },
+        { name: '文字 · 反色', hex: '#F5F1E8' },
+        { name: '强调 · 主（赤陶）', hex: '#C97B5A' },
+        { name: '强调 · 浅底', hex: '#EDD9C8' },
+        { name: '临在 · 静蓝', hex: '#6E8B96' },
+        { name: '临在 · 浅底', hex: '#D8E3E6' },
+        { name: '成功 · 柔绿', hex: '#7C9473' },
+        { name: '警示 · 柔赭红', hex: '#B5493A' },
+      ],
+      typeScale: [
+        { name: 'Display', font: 'Fraunces / 思源宋体', size: '40 / 44', weight: 500, sample: '此刻，你已完整' },
+        { name: 'Title', font: 'Fraunces / 思源宋体', size: '28 / 36', weight: 500, sample: '阴影日记' },
+        { name: 'Heading', font: 'Inter / 苹方', size: '20 / 28', weight: 600, sample: '今日力量感' },
+        { name: 'Body', font: 'Inter / 苹方', size: '17 / 28', weight: 400, sample: '不必寻找答案，只需要如实说出来。' },
+        { name: 'Caption', font: 'Inter / 苹方', size: '14 / 20', weight: 400, sample: '已加密 · 只属于你自己' },
+      ],
+      spacingScale: [4, 8, 12, 16, 24, 32, 48, 64, 96].map(v => ({ v })),
+      radiusScale: [
+        { name: 'sm', px: 12 },
+        { name: 'md', px: 20 },
+        { name: 'lg', px: 28 },
+        { name: 'pill', px: 999 },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
