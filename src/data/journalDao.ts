@@ -43,6 +43,14 @@ export async function addCoachMessage(m: Omit<CoachMessage, 'id' | 'createdAt'>)
   await db.runAsync(`INSERT INTO coach_messages (id,entryId,role,content,createdAt) VALUES (?,?,?,?,?)`, [genId(), m.entryId, m.role, m.content, Date.now()]);
 }
 
+export async function deleteEntry(id: string): Promise<void> {
+  if (isWeb) return web.deleteEntry(id);
+  const db = await getDb();
+  // 删除日记时连带删除该条目下的全部教练对话
+  await db.runAsync(`DELETE FROM coach_messages WHERE entryId=?`, [id]);
+  await db.runAsync(`DELETE FROM journal_entries WHERE id=?`, [id]);
+}
+
 export async function deleteCoachMessage(id: string): Promise<void> {
   if (isWeb) return web.deleteCoachMessage(id);
   const db = await getDb();
