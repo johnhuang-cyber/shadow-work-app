@@ -24,13 +24,14 @@ import { useTheme } from '../../src/theme';
 const USE_NATIVE = Platform.OS !== 'web';
 
 // 'accept'（接纳）是交互式一步，不写入任何文本字段，所以不在此映射中。
+// （DB 的 nameText 字段仍保留在 schema/types 中，只是 UI 不再使用。）
 const FIELD: Partial<Record<string, keyof JournalEntry>> = {
   trigger: 'trigger', admit: 'admitText',
-  name: 'nameText', vent: 'ventText', reassure: 'reassureText',
+  vent: 'ventText', reassure: 'reassureText',
 };
 
-// 每一步的界面文案。设计稿是 5 步（触发点→看见→宣泄→接纳→安抚），
-// 领域模型是 6 步（承认/命名分开）；设计稿文案原样保留，「命名」按同一语气补写。
+// 每一步的界面文案，与设计稿的 5 步（触发点→看见→宣泄→接纳→安抚）一一对应。
+// 设计稿 02（看见）与 20（宣泄）不显示步骤小标题，label 留空即隐藏。
 interface StepCopy { label: string; title: string; sub: string; placeholder?: string }
 const STEP_COPY: Record<string, StepCopy> = {
   trigger: {
@@ -40,30 +41,24 @@ const STEP_COPY: Record<string, StepCopy> = {
     placeholder: '那时候，我...',
   },
   admit: {
-    label: '第 2 步 · 看见',
+    label: '',
     title: '此刻，你感受到\n了什么？',
     sub: '不必寻找答案，\n只需要如实说出来。',
     placeholder: '我感到...',
   },
-  accept: {
-    label: '第 3 步 · 接纳',
-    title: '',
-    sub: '轻触圆环，对自己\n说三次「没关系」',
-  },
-  name: {
-    label: '第 4 步 · 命名',
-    title: '它，住在你身体的\n哪个地方？',
-    sub: '它像几岁的你？\n它在害怕什么？',
-    placeholder: '它像是...',
-  },
   vent: {
-    label: '第 5 步 · 宣泄',
+    label: '',
     title: '让它，都写出来',
     sub: '这里没有对错，尽情宣泄',
     placeholder: '想到什么，就写什么...',
   },
+  accept: {
+    label: '第 4 步 · 接纳',
+    title: '',
+    sub: '轻触圆环，对自己\n说三次「没关系」',
+  },
   reassure: {
-    label: '第 6 步 · 安抚',
+    label: '第 5 步 · 安抚',
     title: '"谢谢你，\n一直这么努力地保护我。"',
     sub: '写几句想对它说的话，\n再给它一个新的、正向的角色。',
     placeholder: '我想对你说...',
@@ -108,8 +103,8 @@ function BreathingCircle({ count, onTap }: { count: number; onTap: () => void })
               height: 154,
               borderRadius: 77,
               borderWidth: 1.5,
-              borderColor: colors.presence,
-              opacity: 0.6,
+              borderColor: colors.accent,
+              opacity: 0.35,
               transform: [{ scale }],
             }}
           />
@@ -177,21 +172,33 @@ function WaitingDots() {
 
   return (
     <View style={{ alignItems: 'center', gap: 14, paddingVertical: 12 }}>
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        {vals.map((v, i) => (
-          <Animated.View
-            key={i}
-            style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, opacity: v }}
-          />
-        ))}
+      <View style={{ width: 64, height: 64, alignItems: 'center', justifyContent: 'center' }}>
+        <View
+          style={{
+            position: 'absolute',
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: colors.accentSoft,
+            opacity: 0.45,
+          }}
+        />
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {vals.map((v, i) => (
+            <Animated.View
+              key={i}
+              style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, opacity: v }}
+            />
+          ))}
+        </View>
       </View>
       <AppText variant="caption" secondary>教练正在感受你写的话...</AppText>
     </View>
   );
 }
 
-/** 完成收束：柔光渐现 + 肯定语（设计稿 21），约 1.8 秒后自动返回。 */
-function CompletionOverlay() {
+/** 完成收束：柔光渐现 + 肯定语 + 「回到今天」（设计稿 21），由用户主动收束。 */
+function CompletionOverlay({ onDone }: { onDone: () => void }) {
   const { colors, fontFamily } = useTheme();
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -213,6 +220,7 @@ function CompletionOverlay() {
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 36,
+          gap: 26,
           opacity,
         },
       ]}
@@ -236,8 +244,12 @@ function CompletionOverlay() {
           textAlign: 'center',
         }}
       >
+        "谢谢你，{'\n'}一直这么努力地保护我。"
+      </AppText>
+      <AppText secondary style={{ fontSize: 14, lineHeight: 24, textAlign: 'center' }}>
         你已经把这份感受，{'\n'}好好地接住了。
       </AppText>
+      <GhostButton label="回到今天" onPress={onDone} style={{ height: 48, paddingHorizontal: 28, marginTop: 8 }} />
     </Animated.View>
   );
 }
@@ -260,12 +272,13 @@ export default function JournalScreen() {
 
   const router = useRouter();
   const navigation = useNavigation();
-  const { colors, fontFamily, radius, shadow } = useTheme();
+  const { colors, fontFamily, radius, shadow, isDark } = useTheme();
+  // 主色 35% 透明的描边（设计稿 23 的「重新连接」）
+  const accentBorder = isDark ? 'rgba(217,145,109,0.35)' : 'rgba(201,123,90,0.35)';
   const entryRef = useRef<JournalEntry | null>(null);
   entryRef.current = entry;
   const scrollRef = useRef<ScrollView>(null);
   const pendingRef = useRef<{ text: string; history: { role: 'user' | 'assistant'; content: string }[] } | null>(null);
-  const finishTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playingRef = useRef<string | null>(null);
@@ -285,7 +298,6 @@ export default function JournalScreen() {
   }, [navigation]);
 
   useEffect(() => () => {
-    if (finishTimer.current) clearTimeout(finishTimer.current);
     if (copyTimer.current) clearTimeout(copyTimer.current);
     if (deleteTimer.current) clearTimeout(deleteTimer.current);
     // 只停掉本页发起的朗读
@@ -316,9 +328,7 @@ export default function JournalScreen() {
   const goNext = () => {
     persist();
     if (isLastStep(stepIdx)) {
-      if (finishing) return;
       setFinishing(true);
-      finishTimer.current = setTimeout(() => router.back(), 1800);
     } else {
       setStepIdx(nextStep(stepIdx));
     }
@@ -334,6 +344,7 @@ export default function JournalScreen() {
       await addCoachMessage({ entryId: id!, role: 'assistant', content: full });
       setMessages(await listCoachMessages(id!));
       pendingRef.current = null;
+      setCoachText(''); // 成功后才清空草稿；失败时保留在输入框里（设计稿 23）
     } catch (e: any) {
       const msg = e?.message ?? String(e);
       setCoachError(msg.includes('API Key') ? 'nokey' : 'network');
@@ -351,7 +362,6 @@ export default function JournalScreen() {
     pendingRef.current = { text, history };
     await addCoachMessage({ entryId: id!, role: 'user', content: text });
     setMessages(await listCoachMessages(id!));
-    setCoachText('');
     await requestCoach(text, history);
   };
 
@@ -496,9 +506,11 @@ export default function JournalScreen() {
 
           {/* 步骤内容 */}
           <View style={{ minHeight: 430, justifyContent: 'center', gap: 24, paddingVertical: 24 }}>
-            <AppText variant="caption" color={colors.accent} style={{ fontSize: 13, letterSpacing: 0.5, textAlign: 'center' }}>
-              {copy.label}
-            </AppText>
+            {copy.label ? (
+              <AppText variant="caption" color={colors.accent} style={{ fontSize: 13, letterSpacing: 0.5, textAlign: 'center' }}>
+                {copy.label}
+              </AppText>
+            ) : null}
             {copy.title ? (
               <AppText
                 style={{
@@ -544,19 +556,29 @@ export default function JournalScreen() {
             ) : null}
           </View>
 
-          {/* 底部导航 */}
+          {/* 底部导航（按钮文案随步骤变化，设计稿 19/20/03/21） */}
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <GhostButton
               label={stepIdx === 0 ? '先不记录' : '上一步'}
+              labelColor={stepIdx === 0 ? colors.textSecondary : undefined}
               onPress={stepIdx === 0 ? exit : goPrev}
               style={{ flex: 1, height: 54 }}
             />
-            <PrimaryButton
-              label={isLastStep(stepIdx) ? '完成今天的记录' : '下一步'}
-              onPress={goNext}
-              glow={isLastStep(stepIdx)}
-              style={{ flex: 1.4, height: 54 }}
-            />
+            {isAccept && acceptCount < 3 ? (
+              <PrimaryButton
+                label="再说一次"
+                soft
+                onPress={() => setAcceptCount((c) => Math.min(c + 1, 3))}
+                style={{ flex: 1.4, height: 54 }}
+              />
+            ) : (
+              <PrimaryButton
+                label={isLastStep(stepIdx) ? '完成今天的记录' : step.key === 'vent' ? '写完了' : '继续'}
+                onPress={goNext}
+                glow={isLastStep(stepIdx)}
+                style={{ flex: 1.4, height: 54 }}
+              />
+            )}
           </View>
 
           {/* 教练陪伴 */}
@@ -592,52 +614,82 @@ export default function JournalScreen() {
               </View>
             ) : null}
 
-            {/* 消息列表 */}
-            {messages.map((m) => (
-              <View
-                key={m.id}
-                style={{
-                  alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: m.role === 'user' ? '82%' : '88%',
-                }}
-              >
-                {m.role === 'user' ? (
+            {/* 消息列表：无气泡的纯文本语言（设计稿 04） */}
+            {messages.map((m) =>
+              m.role === 'assistant' ? (
+                <View key={m.id} style={{ flexDirection: 'row', gap: 12, alignSelf: 'flex-start', maxWidth: '88%' }}>
                   <View
                     style={{
-                      backgroundColor: colors.presenceSoft,
-                      borderRadius: radius.md,
-                      paddingVertical: 12,
-                      paddingHorizontal: 16,
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: colors.accentSoft,
+                      marginTop: 2,
                     }}
-                  >
+                  />
+                  <View style={{ flexShrink: 1 }}>
                     <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
+                    {renderActions(m)}
                   </View>
-                ) : (
-                  <Card radius="md" padding={16} style={{ ...shadow.soft }}>
-                    <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
-                  </Card>
-                )}
-                {renderActions(m)}
-              </View>
-            ))}
+                </View>
+              ) : (
+                <View key={m.id} style={{ alignSelf: 'flex-end', alignItems: 'flex-end', maxWidth: '80%' }}>
+                  <AppText
+                    color={colors.textPrimary}
+                    style={{ fontSize: 16, lineHeight: 27, textAlign: 'right', opacity: 0.75 }}
+                  >
+                    {m.content}
+                  </AppText>
+                  {renderActions(m)}
+                </View>
+              )
+            )}
 
-            {/* 流式回复 / 等待态 */}
+            {/* 流式回复：头像 + 渐隐三点 + 「正在书写...」，文字随流式到达展开（设计稿 04） */}
             {loading && streaming ? (
-              <Card radius="md" padding={16} style={{ alignSelf: 'flex-start', maxWidth: '88%', ...shadow.soft }}>
-                <AppText style={{ fontSize: 16, lineHeight: 27 }}>{streaming}</AppText>
-              </Card>
+              <View style={{ flexDirection: 'row', gap: 12, alignSelf: 'flex-start', maxWidth: '88%' }}>
+                <View
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    backgroundColor: colors.accentSoft,
+                    marginTop: 2,
+                  }}
+                />
+                <View style={{ flexShrink: 1, gap: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {[0.9, 0.6, 0.3].map((o, i) => (
+                        <View
+                          key={i}
+                          style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, opacity: o }}
+                        />
+                      ))}
+                    </View>
+                    <AppText variant="caption" secondary style={{ fontSize: 13 }}>正在书写...</AppText>
+                  </View>
+                  <AppText style={{ fontSize: 16, lineHeight: 27 }}>{streaming}</AppText>
+                </View>
+              </View>
             ) : null}
             {loading && !streaming ? <WaitingDots /> : null}
 
-            {/* 网络失败（设计稿 23） */}
+            {/* 网络失败（设计稿 23）：无卡片、居中、主色描边按钮 */}
             {coachError === 'network' ? (
-              <Card radius="md" padding={20} style={{ alignItems: 'center', gap: 14 }}>
+              <View style={{ alignItems: 'center', gap: 14, paddingVertical: 10, paddingHorizontal: 12 }}>
                 <Feather name="alert-triangle" size={26} color={colors.danger} />
                 <AppText variant="caption" secondary style={{ textAlign: 'center', lineHeight: 24 }}>
                   连接暂时断了一下，{'\n'}先把想说的留在这里，稍后再试。
                 </AppText>
-                <GhostButton label="重新连接" onPress={retry} style={{ height: 44, paddingHorizontal: 20 }} />
-              </Card>
+                <GhostButton
+                  label="重新连接"
+                  labelColor={colors.accent}
+                  borderColor={accentBorder}
+                  onPress={retry}
+                  style={{ height: 44, paddingHorizontal: 20 }}
+                />
+              </View>
             ) : null}
 
             {/* 未配置 API Key（设计稿 24） */}
@@ -645,15 +697,15 @@ export default function JournalScreen() {
               <Card radius="md" padding={22} style={{ alignItems: 'center', gap: 14 }}>
                 <View
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
                     backgroundColor: colors.accentSoft,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Feather name="info" size={22} color={colors.accent} />
+                  <Feather name="info" size={24} color={colors.accent} />
                 </View>
                 <AppText style={{ fontFamily: fontFamily.serif, fontStyle: 'italic', fontSize: 19, lineHeight: 30 }}>
                   教练还没有准备好
@@ -661,7 +713,7 @@ export default function JournalScreen() {
                 <AppText variant="caption" secondary style={{ textAlign: 'center', lineHeight: 24 }}>
                   去「我的」里连接一下，{'\n'}就可以开始对话了。{'\n'}你写下的内容不会因此丢失。
                 </AppText>
-                <GhostButton label="前往设置" onPress={() => router.push('/me')} style={{ height: 44, paddingHorizontal: 24 }} />
+                <PrimaryButton label="前往设置" onPress={() => router.push('/me')} style={{ height: 44, paddingHorizontal: 28 }} />
               </Card>
             ) : null}
 
@@ -695,17 +747,30 @@ export default function JournalScreen() {
                   ...shadow.soft,
                 }}
               />
-              <PrimaryButton
-                label="发送"
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="发送"
+                accessibilityState={{ disabled: !coachText.trim() || loading || confirming }}
                 disabled={!coachText.trim() || loading || confirming}
                 onPress={onSendPress}
-                style={{ height: 48, paddingHorizontal: 20 }}
-              />
+                hitSlop={4}
+                style={({ pressed }) => ({
+                  width: 52,
+                  height: 52,
+                  borderRadius: 26,
+                  backgroundColor: colors.accent,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: !coachText.trim() || loading || confirming ? 0.4 : pressed ? 0.85 : 1,
+                })}
+              >
+                <Feather name="send" size={18} color={colors.textInverse} />
+              </Pressable>
             </View>
           </View>
         </ScrollView>
 
-        {finishing ? <CompletionOverlay /> : null}
+        {finishing ? <CompletionOverlay onDone={() => router.back()} /> : null}
       </View>
     </Screen>
   );

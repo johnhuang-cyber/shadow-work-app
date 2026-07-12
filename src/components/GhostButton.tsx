@@ -6,10 +6,14 @@ export interface GhostButtonProps {
   label: string;
   onPress?: () => void;
   disabled?: boolean;
+  /** Overrides the label color (defaults to textPrimary). */
+  labelColor?: string;
+  /** Overrides the border color (defaults to hairline). */
+  borderColor?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-export function GhostButton({ label, onPress, disabled, style }: GhostButtonProps) {
+export function GhostButton({ label, onPress, disabled, labelColor, borderColor, style }: GhostButtonProps) {
   const { colors, radius, fontFamily } = useTheme();
 
   return (
@@ -26,7 +30,7 @@ export function GhostButton({ label, onPress, disabled, style }: GhostButtonProp
           borderRadius: radius.pill,
           backgroundColor: 'transparent',
           borderWidth: 1,
-          borderColor: colors.hairline,
+          borderColor: borderColor ?? colors.hairline,
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 24,
@@ -39,7 +43,7 @@ export function GhostButton({ label, onPress, disabled, style }: GhostButtonProp
         style={{
           fontFamily: fontFamily.sansSemiBold,
           fontSize: 17,
-          color: colors.textPrimary,
+          color: labelColor ?? colors.textPrimary,
         }}
       >
         {label}

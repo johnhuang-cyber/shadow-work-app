@@ -11,30 +11,29 @@ function tabIcon(name: FeatherName) {
 }
 
 export default function TabsLayout() {
-  const { colors, fontFamily } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: colors.surface,
+          backgroundColor: colors.bg,
           borderTopWidth: 1,
           borderTopColor: colors.hairline,
+          elevation: 0,
+          shadowOpacity: 0,
           height: 64 + insets.bottom,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontFamily: fontFamily.sans,
-          fontSize: 11,
+          paddingTop: 14,
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: '今天', tabBarIcon: tabIcon('sun') }} />
-      <Tabs.Screen name="meditate" options={{ title: '冥想', tabBarIcon: tabIcon('wind') }} />
+      <Tabs.Screen name="index" options={{ title: '今天', tabBarIcon: tabIcon('home') }} />
+      <Tabs.Screen name="meditate" options={{ title: '冥想', tabBarIcon: tabIcon('target') }} />
       <Tabs.Screen name="beliefs" options={{ title: '信念', tabBarIcon: tabIcon('heart') }} />
       <Tabs.Screen name="me" options={{ title: '我的', tabBarIcon: tabIcon('user') }} />
     </Tabs>
