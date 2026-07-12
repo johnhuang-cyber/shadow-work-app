@@ -12,8 +12,10 @@ export const REFRAME_SYSTEM = `你是"信念改写"助手，基于"极性/顶替
 来源：<它可能从何而来，一句话>
 新信念：<一个真的能相信的、渐进的赋能信念>
 复述：<一句可每天对自己说的短句>`;
-export function buildCoachMessages(userText: string, history: ChatMsg[] = []): ChatMsg[] {
-  return [{ role: 'system', content: COACH_SYSTEM }, ...history, { role: 'user', content: userText }];
+/** context：教练的「记忆」——用户的长期内在部分 + 本次日记摘要，拼进唯一的 system 消息。 */
+export function buildCoachMessages(userText: string, history: ChatMsg[] = [], context?: string): ChatMsg[] {
+  const system = context ? `${COACH_SYSTEM}\n\n${context}` : COACH_SYSTEM;
+  return [{ role: 'system', content: system }, ...history, { role: 'user', content: userText }];
 }
 export function buildReframeMessages(limitingBelief: string): ChatMsg[] {
   return [{ role: 'system', content: REFRAME_SYSTEM }, { role: 'user', content: `我的限制性信念是：${limitingBelief}` }];

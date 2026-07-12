@@ -38,14 +38,14 @@ export async function streamChat(
 }
 
 // Runtime wrappers — expo/fetch imported LAZILY so tests (node) don't try to resolve it.
-export async function runCoach(userText: string, history: ChatMsg[], onDelta: (t: string) => void): Promise<string> {
+export async function runCoach(userText: string, history: ChatMsg[], onDelta: (t: string) => void, context?: string): Promise<string> {
   const { getApiKey, getModel } = await import('../services/settingsService');
   const apiKey = await getApiKey();
   if (!apiKey) throw new Error('尚未配置 DeepSeek API Key，请到「我的」里填写。');
   const model = await getModel();
   const { buildCoachMessages } = await import('./prompts');
   const { fetch: expoFetch } = await import('expo/fetch');
-  return streamChat({ apiKey, model, messages: buildCoachMessages(userText, history) }, onDelta, expoFetch as any);
+  return streamChat({ apiKey, model, messages: buildCoachMessages(userText, history, context) }, onDelta, expoFetch as any);
 }
 
 export async function runReframe(limitingBelief: string, onDelta: (t: string) => void): Promise<string> {

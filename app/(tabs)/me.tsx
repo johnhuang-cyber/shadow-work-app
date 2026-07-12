@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { FlatList, Pressable, ScrollView, Switch, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, Switch, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
   getApiKey, setApiKey, getModel, setModel, getPowerScore, setPowerScore,
 } from '../../src/services/settingsService';
+import { exportAllData } from '../../src/services/exportService';
 import { listBeliefs } from '../../src/data/beliefDao';
+import { listEntries } from '../../src/data/journalDao';
+import { derivePartsSummary, type PartSummary } from '../../src/domain/parts';
 import type { Belief } from '../../src/types';
 import { AppText, Card, PrimaryButton, Screen, SoftInput } from '../../src/components';
 import { useTheme, useThemePref } from '../../src/theme';
@@ -103,6 +106,46 @@ function PowerCircle() {
           </Pressable>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** 我的内在部分：跨日记统计被命名的部分，柔和胶囊换行排列；没有时整块隐藏。 */
+function InnerParts() {
+  const { colors, fontFamily, radius } = useTheme();
+  const [parts, setParts] = useState<PartSummary[]>([]);
+
+  useFocusEffect(useCallback(() => {
+    listEntries().then((es) => setParts(derivePartsSummary(es))).catch(() => {});
+  }, []));
+
+  if (parts.length === 0) return null;
+
+  return (
+    <View>
+      <AppText style={{ fontSize: 13, lineHeight: 20, fontFamily: fontFamily.sansSemiBold }}>
+        我的内在部分
+      </AppText>
+      <AppText variant="caption" secondary style={{ fontSize: 12, lineHeight: 18, marginTop: 4 }}>
+        这些部分被你看见的次数
+      </AppText>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+        {parts.map((p) => (
+          <View
+            key={p.label}
+            style={{
+              backgroundColor: colors.accentSoft,
+              borderRadius: radius.pill,
+              paddingVertical: 7,
+              paddingHorizontal: 14,
+            }}
+          >
+            <AppText variant="caption" style={{ fontSize: 13, lineHeight: 18 }}>
+              {p.label} ×{p.count}
+            </AppText>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -205,6 +248,8 @@ export default function MeScreen() {
   const [beliefs, setBeliefs] = useState<Belief[]>([]);
   const [notifyHint, setNotifyHint] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const { colors, fontFamily, radius } = useTheme();
   const { pref, setPref } = useThemePref();
 
@@ -231,6 +276,21 @@ export default function MeScreen() {
     await setModel(v ? 'deepseek-reasoner' : 'deepseek-chat');
   };
 
+  /** 导出全部本地数据为 Markdown：原生调起分享面板，Web 直接下载。 */
+  const doExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportFeedback(null);
+    try {
+      await exportAllData();
+      setExportFeedback({ kind: 'ok', text: '已生成，请选择保存位置' });
+    } catch (e: any) {
+      setExportFeedback({ kind: 'error', text: e?.message ?? '导出没有成功，请稍后再试。' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Screen>
       <ScrollView
@@ -246,6 +306,9 @@ export default function MeScreen() {
 
         {/* 今日力量感（设计稿 08） */}
         <PowerCircle />
+
+        {/* 我的内在部分——没有命名过时整块隐藏 */}
+        <InnerParts />
 
         {/* 收藏的频率卡片（设计稿 08）——无卡片时整块隐藏 */}
         <BeliefPreview beliefs={beliefs} />
@@ -347,6 +410,27 @@ export default function MeScreen() {
               />
             </View>
           </Card>
+
+          {/* 导出我的数据：随时把日记、频率卡与冥想记录带走 */}
+          <View style={{ borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surface }}>
+            <SettingsRow
+              icon="download"
+              label="导出我的数据"
+              onPress={doExport}
+              last
+              right={exporting ? <ActivityIndicator size="small" color={colors.accent} /> : undefined}
+            >
+              {exportFeedback ? (
+                <AppText
+                  variant="caption"
+                  color={exportFeedback.kind === 'ok' ? colors.success : colors.danger}
+                  style={{ fontSize: 12, lineHeight: 18, paddingHorizontal: 50, paddingBottom: 14 }}
+                >
+                  {exportFeedback.text}
+                </AppText>
+              ) : null}
+            </SettingsRow>
+          </View>
 
           <View
             style={{

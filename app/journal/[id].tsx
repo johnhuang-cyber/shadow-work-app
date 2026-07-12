@@ -14,7 +14,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Speech from 'expo-speech';
 import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { JOURNAL_STEPS, nextStep, prevStep, isLastStep } from '../../src/domain/journalSteps';
-import { getEntry, saveEntry, addCoachMessage, listCoachMessages, deleteCoachMessage } from '../../src/data/journalDao';
+import { derivePartsSummary } from '../../src/domain/parts';
+import { getEntry, saveEntry, listEntries, addCoachMessage, listCoachMessages, deleteCoachMessage } from '../../src/data/journalDao';
 import { runCoach } from '../../src/ai/deepseek';
 import { getAiConsent, setAiConsent } from '../../src/services/settingsService';
 import type { JournalEntry, CoachMessage } from '../../src/types';
@@ -43,7 +44,7 @@ const STEP_COPY: Record<string, StepCopy> = {
   admit: {
     label: '',
     title: '此刻，你感受到\n了什么？',
-    sub: '不必寻找答案，\n只需要如实说出来。',
+    sub: '不必寻找答案，\n只需要如实说出来。\n它在你身体的哪个部位？\n像几岁的你？',
     placeholder: '我感到...',
   },
   vent: {
@@ -534,7 +535,7 @@ export default function JournalScreen() {
   const entryRef = useRef<JournalEntry | null>(null);
   entryRef.current = entry;
   const scrollRef = useRef<ScrollView>(null);
-  const pendingRef = useRef<{ text: string; history: { role: 'user' | 'assistant'; content: string }[] } | null>(null);
+  const pendingRef = useRef<{ text: string; history: { role: 'user' | 'assistant'; content: string }[]; context?: string } | null>(null);
   const playingRef = useRef<string | null>(null);
   playingRef.current = playingId;
   // 浮层定位：页面容器 + 每条消息的 ref（长按时量取消息位置作为锚点）
@@ -590,12 +591,46 @@ export default function JournalScreen() {
   };
 
   // ——— 教练对话 ———
-  const requestCoach = async (text: string, history: { role: 'user' | 'assistant'; content: string }[]) => {
+  /**
+   * 教练的「记忆」：用户的长期内在部分（跨日记统计）+ 本次日记摘要。
+   * 拼进 system 消息，让教练认得那些反复出现的部分。
+   */
+  const buildCoachContext = async (): Promise<string | undefined> => {
+    const cur = entryRef.current;
+    const sections: string[] = [];
+    try {
+      if (cur) await saveEntry(cur); // 先落盘，让本次命名也进入长期统计
+      const parts = derivePartsSummary(await listEntries()).slice(0, 5);
+      if (parts.length > 0) {
+        sections.push(
+          ['【用户的长期内在部分（按出现次数）】', ...parts.map((p) => `- ${p.label}（出现 ${p.count} 次）`)].join('\n')
+        );
+      }
+    } catch {
+      // 统计失败不阻断对话，教练只是少一点记忆
+    }
+    if (cur) {
+      const fields: string[] = [];
+      if (cur.trigger.trim()) fields.push(`触发点：${cur.trigger.trim()}`);
+      if (cur.admitText.trim()) fields.push(`看见：${cur.admitText.trim()}`);
+      if (cur.ventText.trim()) fields.push(`宣泄：${cur.ventText.trim()}`);
+      if (cur.reassureText.trim()) fields.push(`安抚：${cur.reassureText.trim()}`);
+      if (cur.partLabel.trim()) fields.push(`命名的部分：${cur.partLabel.trim()}`);
+      if (fields.length > 0) sections.push(`【本次日记】${fields.join('；')}`);
+    }
+    return sections.length > 0 ? sections.join('\n\n') : undefined;
+  };
+
+  const requestCoach = async (
+    text: string,
+    history: { role: 'user' | 'assistant'; content: string }[],
+    context?: string
+  ) => {
     setLoading(true);
     setStreaming('');
     setCoachError(null);
     try {
-      const full = await runCoach(text, history, (d) => setStreaming((s) => s + d));
+      const full = await runCoach(text, history, (d) => setStreaming((s) => s + d), context);
       await addCoachMessage({ entryId: id!, role: 'assistant', content: full });
       setMessages(await listCoachMessages(id!));
       pendingRef.current = null;
@@ -614,10 +649,11 @@ export default function JournalScreen() {
     if (!text) return;
     setConfirming(false);
     const history = messages.map((m) => ({ role: m.role, content: m.content }));
-    pendingRef.current = { text, history };
+    const context = await buildCoachContext();
+    pendingRef.current = { text, history, context };
     await addCoachMessage({ entryId: id!, role: 'user', content: text });
     setMessages(await listCoachMessages(id!));
-    await requestCoach(text, history);
+    await requestCoach(text, history, context);
   };
 
   /** 发送入口：第一次询问一次同意，之后直接发送。 */
@@ -633,7 +669,7 @@ export default function JournalScreen() {
 
   const retry = () => {
     const pending = pendingRef.current;
-    if (pending) requestCoach(pending.text, pending.history);
+    if (pending) requestCoach(pending.text, pending.history, pending.context);
     else setCoachError(null);
   };
 
@@ -755,6 +791,29 @@ export default function JournalScreen() {
             <AppText secondary style={{ fontSize: 15, lineHeight: 27, textAlign: 'center' }}>
               {copy.sub}
             </AppText>
+            {/* 安抚步骤：给这个部分命名（可选），沉入内在部分库，让教练记得它 */}
+            {step.key === 'reassure' ? (
+              <View style={{ gap: 10 }}>
+                <AppText variant="caption" secondary style={{ fontSize: 13, paddingLeft: 4 }}>
+                  给这个部分起个名字（可选）
+                </AppText>
+                <SoftInput
+                  multiline={false}
+                  value={entry.partLabel}
+                  onChangeText={(t) => setEntry({ ...entry, partLabel: t })}
+                  onBlur={persist}
+                  placeholder="例如：怕被忽视的小孩"
+                  style={{
+                    borderWidth: 0,
+                    borderRadius: radius.pill,
+                    minHeight: 48,
+                    paddingVertical: 12,
+                    paddingHorizontal: 20,
+                    ...shadow.soft,
+                  }}
+                />
+              </View>
+            ) : null}
             {isAccept ? (
               <BreathingCircle count={acceptCount} onTap={() => setAcceptCount((c) => Math.min(c + 1, 3))} />
             ) : (
