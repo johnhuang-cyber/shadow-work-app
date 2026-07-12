@@ -8,8 +8,11 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import * as Speech from 'expo-speech';
 import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
@@ -198,6 +201,47 @@ function WaitingDots() {
   );
 }
 
+/**
+ * 教练头像（设计稿 29/29b）：分层渐变光晕（呼吸/临在意象）+ 细内环，非纯色圆。
+ * 只出现在教练连续消息的第一条；用户侧不设头像。
+ */
+function CoachAvatar() {
+  const { component, isDark } = useTheme();
+  const av = component.coachMessage.avatar;
+  const inset = av.ringInset;
+  return (
+    <LinearGradient
+      colors={[...(isDark ? av.gradientDark : av.gradientLight)]}
+      locations={[...av.gradientLocations]}
+      style={{
+        width: av.size,
+        height: av.size,
+        borderRadius: av.size / 2,
+        flexShrink: 0,
+        // 浅色 0 3px 8px rgba(201,123,90,0.22)；深色 0 0 14px rgba(217,145,109,0.25)
+        shadowColor: isDark ? '#D9916D' : '#C97B5A',
+        shadowOpacity: isDark ? 0.25 : 0.22,
+        shadowRadius: isDark ? 14 : 8,
+        shadowOffset: { width: 0, height: isDark ? 0 : 3 },
+        elevation: 2,
+      }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          top: inset,
+          left: inset,
+          right: inset,
+          bottom: inset,
+          borderRadius: (av.size - inset * 2) / 2,
+          borderWidth: 1,
+          borderColor: isDark ? av.ringDark : av.ringLight,
+        }}
+      />
+    </LinearGradient>
+  );
+}
+
 // ——— 教练消息 · 长按操作浮层（设计稿 28a–28f）———
 
 /** 长按浮层的锚点：消息在页面容器坐标系里的位置与容器宽度。 */
@@ -381,7 +425,7 @@ function SpeakingIndicator({ onStop }: { onStop: () => void }) {
       accessibilityLabel="停止朗读"
       onPress={onStop}
       hitSlop={8}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, alignSelf: 'flex-start' }}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, alignSelf: 'flex-start' }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 12 }}>
         {BAR_HEIGHTS.map((h, i) => (
@@ -529,9 +573,38 @@ export default function JournalScreen() {
 
   const router = useRouter();
   const navigation = useNavigation();
-  const { colors, fontFamily, radius, shadow, isDark } = useTheme();
+  const { colors, component, fontFamily, radius, shadow, isDark } = useTheme();
   // 主色 35% 透明的描边（设计稿 23 的「重新连接」）
   const accentBorder = isDark ? 'rgba(217,145,109,0.35)' : 'rgba(201,123,90,0.35)';
+  // ——— 教练对话气泡（设计稿 29/29b，component.coachMessage）———
+  const cm = component.coachMessage;
+  const userTextColor = isDark ? cm.userTextColorDark : cm.userTextColor;
+  // 20px 圆角，说话方向的起始角收成 6px：教练左下、用户右下
+  const bubbleBase = {
+    paddingVertical: cm.bubblePaddingVertical,
+    paddingHorizontal: cm.bubblePaddingHorizontal,
+    maxWidth: cm.bubbleMaxWidth,
+    borderTopLeftRadius: cm.bubbleRadius,
+    borderTopRightRadius: cm.bubbleRadius,
+  } as const;
+  const coachBubble: ViewStyle = {
+    ...bubbleBase,
+    flexShrink: 1,
+    backgroundColor: isDark ? cm.coachBubbleBgDark : cm.coachBubbleBg,
+    borderBottomRightRadius: cm.bubbleRadius,
+    borderBottomLeftRadius: cm.bubbleDirectionRadius,
+    ...shadow.soft,
+  };
+  const userBubble: ViewStyle = {
+    ...bubbleBase,
+    backgroundColor: isDark ? cm.userBubbleBgDark : cm.userBubbleBg,
+    borderBottomLeftRadius: cm.bubbleRadius,
+    borderBottomRightRadius: cm.bubbleDirectionRadius,
+  };
+  /** 同一人连续说话间距 6，换人说话间距 20（groupGap*）。 */
+  const messageGap = (prev: CoachMessage | undefined, role: CoachMessage['role']) =>
+    prev === undefined ? 0 : prev.role === role ? cm.groupGapSameSpeaker : cm.groupGapSpeakerChange;
+  const lastMessage = messages[messages.length - 1];
   const entryRef = useRef<JournalEntry | null>(null);
   entryRef.current = entry;
   const scrollRef = useRef<ScrollView>(null);
@@ -717,14 +790,15 @@ export default function JournalScreen() {
     setMessages(await listCoachMessages(id!));
   };
 
-  /** 消息正文：长按浮出操作胶囊；轻点收起已有浮层。 */
-  const renderMessageBody = (m: CoachMessage, children: ReactNode) => (
+  /** 消息气泡：长按浮出操作胶囊；轻点收起已有浮层。Pressable 本身即气泡（浮层锚点量的就是气泡）。 */
+  const renderMessageBody = (m: CoachMessage, children: ReactNode, style?: StyleProp<ViewStyle>) => (
     <Pressable
       ref={(r) => { messageRefs.current[m.id] = r; }}
       accessibilityLabel="长按打开消息操作"
       delayLongPress={350}
       onLongPress={() => openPopover(m)}
       onPress={() => setPopover(null)}
+      style={style}
     >
       {children}
     </Pressable>
@@ -901,68 +975,75 @@ export default function JournalScreen() {
               </View>
             ) : null}
 
-            {/* 消息列表：无气泡的纯文本语言（设计稿 04），长按浮出操作（设计稿 28） */}
-            {messages.map((m) =>
-              m.role === 'assistant' ? (
-                <View key={m.id} style={{ flexDirection: 'row', gap: 12, alignSelf: 'flex-start', maxWidth: '88%' }}>
+            {/* 消息列表：教练/用户气泡 + 渐变光晕头像（设计稿 29/29b），长按浮出操作（设计稿 28）。
+                头像只出现在教练连续消息的第一条，其余消息以头像宽度占位使气泡对齐。 */}
+            {messages.length > 0 || (loading && streaming) ? (
+              <View>
+                {messages.map((m, i) => {
+                  const marginTop = messageGap(messages[i - 1], m.role);
+                  if (m.role === 'assistant') {
+                    const showAvatar = i === 0 || messages[i - 1].role !== 'assistant';
+                    return (
+                      <View key={m.id} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginTop }}>
+                        {showAvatar ? <CoachAvatar /> : <View style={{ width: cm.avatar.size }} />}
+                        {renderMessageBody(
+                          m,
+                          <>
+                            <AppText style={{ fontSize: cm.bubbleFontSize, lineHeight: cm.bubbleLineHeight }}>
+                              {m.content}
+                            </AppText>
+                            {playingId === m.id ? <SpeakingIndicator onStop={stopPlaying} /> : null}
+                          </>,
+                          coachBubble
+                        )}
+                      </View>
+                    );
+                  }
+                  return (
+                    <View key={m.id} style={{ alignItems: 'flex-end', marginTop }}>
+                      {renderMessageBody(
+                        m,
+                        <AppText
+                          color={userTextColor}
+                          style={{ fontSize: cm.bubbleFontSize, lineHeight: cm.bubbleLineHeight }}
+                        >
+                          {m.content}
+                        </AppText>,
+                        userBubble
+                      )}
+                    </View>
+                  );
+                })}
+
+                {/* 流式回复：渐隐三点 + 「正在书写...」与流式文字同在一个教练气泡内（设计稿 29 typing group） */}
+                {loading && streaming ? (
                   <View
                     style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 15,
-                      backgroundColor: colors.accentSoft,
-                      marginTop: 2,
+                      flexDirection: 'row',
+                      gap: 12,
+                      alignItems: 'flex-start',
+                      marginTop: messageGap(lastMessage, 'assistant'),
                     }}
-                  />
-                  <View style={{ flexShrink: 1 }}>
-                    {renderMessageBody(
-                      m,
-                      <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
-                    )}
-                    {playingId === m.id ? <SpeakingIndicator onStop={stopPlaying} /> : null}
-                  </View>
-                </View>
-              ) : (
-                <View key={m.id} style={{ alignSelf: 'flex-end', alignItems: 'flex-end', maxWidth: '80%' }}>
-                  {renderMessageBody(
-                    m,
-                    <AppText
-                      color={colors.textPrimary}
-                      style={{ fontSize: 16, lineHeight: 27, textAlign: 'right', opacity: 0.75 }}
-                    >
-                      {m.content}
-                    </AppText>
-                  )}
-                </View>
-              )
-            )}
-
-            {/* 流式回复：头像 + 渐隐三点 + 「正在书写...」，文字随流式到达展开（设计稿 04） */}
-            {loading && streaming ? (
-              <View style={{ flexDirection: 'row', gap: 12, alignSelf: 'flex-start', maxWidth: '88%' }}>
-                <View
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 15,
-                    backgroundColor: colors.accentSoft,
-                    marginTop: 2,
-                  }}
-                />
-                <View style={{ flexShrink: 1, gap: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
-                      {[0.9, 0.6, 0.3].map((o, i) => (
-                        <View
-                          key={i}
-                          style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, opacity: o }}
-                        />
-                      ))}
+                  >
+                    {lastMessage?.role === 'assistant' ? <View style={{ width: cm.avatar.size }} /> : <CoachAvatar />}
+                    <View style={[coachBubble, { gap: 10 }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={{ flexDirection: 'row', gap: 5 }}>
+                          {[0.9, 0.6, 0.3].map((o, i) => (
+                            <View
+                              key={i}
+                              style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, opacity: o }}
+                            />
+                          ))}
+                        </View>
+                        <AppText variant="caption" secondary style={{ fontSize: 13 }}>正在书写...</AppText>
+                      </View>
+                      <AppText style={{ fontSize: cm.bubbleFontSize, lineHeight: cm.bubbleLineHeight }}>
+                        {streaming}
+                      </AppText>
                     </View>
-                    <AppText variant="caption" secondary style={{ fontSize: 13 }}>正在书写...</AppText>
                   </View>
-                  <AppText style={{ fontSize: 16, lineHeight: 27 }}>{streaming}</AppText>
-                </View>
+                ) : null}
               </View>
             ) : null}
             {loading && !streaming ? <WaitingDots /> : null}

@@ -106,6 +106,37 @@ export const component = {
     radius: 999,
     durationMs: 1500,
   },
+  /** 教练对话气泡 + 渐变光晕头像（29/29b）。 */
+  coachMessage: {
+    coachBubbleBg: '#FBF8F1',
+    coachBubbleBgDark: '#2A2440',
+    userBubbleBg: '#F3E4D6',
+    userBubbleBgDark: 'rgba(201,123,90,0.16)',
+    userTextColor: '#4A3B30',
+    userTextColorDark: '#F1DFCE',
+    /** 20px 圆角，说话方向的起始角收成 6px（暗示方向，不做尖角气泡尾）。 */
+    bubbleRadius: 20,
+    bubbleDirectionRadius: 6,
+    bubbleMaxWidth: '78%',
+    bubblePaddingVertical: 16,
+    bubblePaddingHorizontal: 18,
+    /** 行高因子 1.75：16px 字号 → 28。 */
+    bubbleFontSize: 16,
+    bubbleLineHeight: 28,
+    groupGapSameSpeaker: 6,
+    groupGapSpeakerChange: 20,
+    /** 分层渐变光晕（呼吸/临在意象）+ 细内环，仅教练连续消息的第一条；用户侧无头像。 */
+    avatar: {
+      size: 34,
+      /** radial-gradient(circle at 35% 30%) 的纵向线性近似。 */
+      gradientLight: ['#F3D9C4', '#D8E3E6', '#C9A98A'],
+      gradientDark: ['#6E5A78', '#3A3560', '#2A2440'],
+      gradientLocations: [0, 0.65, 1],
+      ringLight: 'rgba(255,255,255,0.55)',
+      ringDark: 'rgba(245,241,232,0.25)',
+      ringInset: 7,
+    },
+  },
   /** 历史记录左滑删除（27a/27b）。 */
   swipeDelete: {
     revealBg: '#EAD9CC',
