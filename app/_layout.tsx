@@ -7,6 +7,7 @@ import { Fraunces_500Medium, Fraunces_600SemiBold } from '@expo-google-fonts/fra
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { NotoSerifSC_500Medium } from '@expo-google-fonts/noto-serif-sc';
 import { getDb } from '../src/data/db';
+import { ThemePreferenceProvider } from '../src/theme';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -28,10 +29,12 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
-    </SafeAreaProvider>
+    <ThemePreferenceProvider>
+      <SafeAreaProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+      </SafeAreaProvider>
+    </ThemePreferenceProvider>
   );
 }

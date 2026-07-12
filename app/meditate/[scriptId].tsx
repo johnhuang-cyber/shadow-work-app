@@ -3,6 +3,7 @@ import { Animated, Easing, Platform, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { MEDITATION_SCRIPTS, medReducer, initMedState } from '../../src/domain/meditationScripts';
@@ -15,6 +16,9 @@ const USE_NATIVE = Platform.OS !== 'web';
 
 // 沉浸态永远使用深色底（设计稿 05/06 的 bgDeep），与系统外观无关。
 const C = darkColors;
+/** 沉浸态背景渐变（设计稿 05/06：#1F1B2E 0% → #241E38 60% → #2A2148 100%）。 */
+const BG_GRADIENT = ['#1F1B2E', '#241E38', '#2A2148'] as const;
+const BG_LOCATIONS = [0, 0.6, 1] as const;
 /** 深色底上的米白文字（textInverse 的 alpha 变体，设计稿 rgba(245,241,232,x)）。 */
 const cream = (alpha: number) => `rgba(245,241,232,${alpha})`;
 
@@ -216,6 +220,13 @@ export default function PlayerScreen() {
   };
   const end = () => { Speech.stop(); router.back(); };
 
+  /** 上一步骤 / 下一步骤：停掉当前朗读并重置已读标记，让新步骤被朗读。 */
+  const jumpTo = (index: number) => {
+    Speech.stop();
+    spokenStep.current = -1;
+    dispatch({ type: 'JUMP', index });
+  };
+
   const toggleMute = () => {
     const next = !muted;
     mutedRef.current = next;
@@ -228,7 +239,8 @@ export default function PlayerScreen() {
   const remaining = Math.max(totalSec - elapsed, 0);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+    <LinearGradient colors={[...BG_GRADIENT]} locations={[...BG_LOCATIONS]} style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="light" />
       {state.completed ? (
@@ -303,9 +315,16 @@ export default function PlayerScreen() {
                 />
               ))}
             </View>
+            {/* 传输控制（设计稿 05）：上一步骤 / 暂停继续 / 下一步骤 */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 34 }}>
-              <Pressable accessibilityRole="button" onPress={restart} hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-                <AppText color={cream(0.55)} style={{ fontSize: 13, lineHeight: 18 }}>重来</AppText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="上一步骤"
+                onPress={() => jumpTo(state.stepIndex - 1)}
+                hitSlop={12}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+              >
+                <Feather name="skip-back" size={20} color={cream(0.55)} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -326,6 +345,20 @@ export default function PlayerScreen() {
               >
                 <Feather name={running ? 'pause' : 'play'} size={20} color={C.textPrimary} />
               </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="下一步骤"
+                onPress={() => jumpTo(state.stepIndex + 1)}
+                hitSlop={12}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+              >
+                <Feather name="skip-forward" size={20} color={cream(0.55)} />
+              </Pressable>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 44 }}>
+              <Pressable accessibilityRole="button" onPress={restart} hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                <AppText color={cream(0.55)} style={{ fontSize: 13, lineHeight: 18 }}>重来</AppText>
+              </Pressable>
               <Pressable accessibilityRole="button" onPress={end} hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
                 <AppText color={cream(0.55)} style={{ fontSize: 13, lineHeight: 18 }}>结束</AppText>
               </Pressable>
@@ -333,6 +366,7 @@ export default function PlayerScreen() {
           </View>
         </View>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }

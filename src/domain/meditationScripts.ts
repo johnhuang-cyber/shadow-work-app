@@ -17,10 +17,15 @@ export const MEDITATION_SCRIPTS: MedScript[] = [
   ]},
 ];
 export interface MedState { stepIndex: number; secondsInStep: number; completed: boolean; }
-export type MedAction = { type: 'TICK' } | { type: 'RESET' };
+export type MedAction = { type: 'TICK' } | { type: 'RESET' } | { type: 'JUMP'; index: number };
 export const initMedState = (_script: MedScript): MedState => ({ stepIndex: 0, secondsInStep: 0, completed: false });
 export function medReducer(state: MedState, action: MedAction, script: MedScript): MedState {
   if (action.type === 'RESET') return initMedState(script);
+  if (action.type === 'JUMP') {
+    // 上一步/下一步：夹在 [0, 最后一步]，清零步内秒数；跳步不直接触发完成。
+    const index = Math.min(Math.max(action.index, 0), script.steps.length - 1);
+    return { stepIndex: index, secondsInStep: 0, completed: false };
+  }
   if (state.completed) return state;
   const step = script.steps[state.stepIndex];
   const nextSeconds = state.secondsInStep + 1;

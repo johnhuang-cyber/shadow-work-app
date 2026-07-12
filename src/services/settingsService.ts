@@ -48,3 +48,35 @@ export async function getAiConsent(): Promise<boolean> {
 export async function setAiConsent(): Promise<void> {
   await setItem(KEY_AI_CONSENT, '1');
 }
+
+/** 今日力量感（设计稿 08）：按天存 1-10 的分值，key 形如 power_2026-07-12。 */
+export async function getPowerScore(dateKey: string): Promise<number | null> {
+  const v = await getItem(`power_${dateKey}`);
+  const n = v == null ? NaN : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+export async function setPowerScore(dateKey: string, v: number): Promise<void> {
+  await setItem(`power_${dateKey}`, String(v));
+}
+
+/** 主题偏好：system 跟随系统 / dark 强制深色 / light 强制浅色。 */
+export type ThemePref = 'system' | 'dark' | 'light';
+
+export async function getThemePref(): Promise<ThemePref> {
+  const v = await getItem('theme_pref');
+  return v === 'dark' || v === 'light' ? v : 'system';
+}
+
+export async function setThemePref(pref: ThemePref): Promise<void> {
+  await setItem('theme_pref', pref);
+}
+
+/** 频率卡「每日提醒」开关（设计稿 07/25b）：key 形如 reminder_<beliefId>。 */
+export async function getReminderFlag(beliefId: string): Promise<boolean> {
+  return (await getItem(`reminder_${beliefId}`)) === '1';
+}
+
+export async function setReminderFlag(beliefId: string, on: boolean): Promise<void> {
+  await setItem(`reminder_${beliefId}`, on ? '1' : '0');
+}
