@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -197,6 +197,260 @@ function WaitingDots() {
   );
 }
 
+// ——— 教练消息 · 长按操作浮层（设计稿 28a–28f）———
+
+/** 长按浮层的锚点：消息在页面容器坐标系里的位置与容器宽度。 */
+interface PopoverAnchor { x: number; y: number; w: number; h: number; rootW: number }
+
+interface PopoverState { msg: CoachMessage; confirm: boolean; anchor: PopoverAnchor }
+
+// 浮层高度估算（操作行 / 确认态），用于「上方放得下就贴在消息上缘之上」的启发式
+const POPOVER_H_ACTIONS = 62;
+const POPOVER_H_CONFIRM = 96;
+const CONFIRM_W = 210;
+// 设计稿 28c/28f：确认「放下」按钮深浅模式都是柔赭红
+const RELEASE_BG = '#B5493A';
+const RELEASE_TEXT = '#F5F1E8';
+
+/** 操作胶囊：复制 / 朗读（仅教练消息）/ 放下，「放下」原地切换为二次确认态。 */
+function MessagePopover({
+  anchor,
+  role,
+  confirm,
+  onCopy,
+  onSpeak,
+  onAskRelease,
+  onKeep,
+  onRelease,
+}: {
+  anchor: PopoverAnchor;
+  role: 'user' | 'assistant';
+  confirm: boolean;
+  onCopy: () => void;
+  onSpeak: () => void;
+  onAskRelease: () => void;
+  onKeep: () => void;
+  onRelease: () => void;
+}) {
+  const { colors, component, fontFamily, shadow, isDark } = useTheme();
+  const pop = component.messageActionPopover;
+  const anim = useRef(new Animated.Value(0)).current;
+
+  // 入场：0.9→1 缩放 + 渐显，240ms（component.messageActionPopover.enterMs）
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: pop.enterMs,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: USE_NATIVE,
+    }).start();
+  }, [anim, pop.enterMs]);
+
+  const estH = confirm ? POPOVER_H_CONFIRM : POPOVER_H_ACTIONS;
+  const above = anchor.y - estH + 10 >= 8; // 上方放得下就浮在消息上缘（与消息轻微重叠）
+  const top = above ? anchor.y - estH + 10 : anchor.y + anchor.h + 8;
+  const horizontal =
+    role === 'assistant'
+      ? { left: Math.max(16, Math.min(anchor.x + 6, anchor.rootW - (confirm ? CONFIRM_W : 170) - 16)) }
+      : { right: Math.max(16, anchor.rootW - anchor.x - anchor.w) };
+
+  const actionItem = (icon: 'copy' | 'volume-2' | 'trash-2', label: string, onPress: () => void) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: pop.itemRadius,
+        backgroundColor: pressed ? colors.accentSoft : 'transparent',
+      })}
+    >
+      {({ pressed }) => (
+        <>
+          <Feather name={icon} size={16} color={pressed ? colors.accent : colors.textSecondary} />
+          <AppText
+            variant="caption"
+            color={pressed ? colors.accent : colors.textSecondary}
+            style={{ fontSize: 12, lineHeight: 16 }}
+          >
+            {label}
+          </AppText>
+        </>
+      )}
+    </Pressable>
+  );
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        top,
+        ...horizontal,
+        backgroundColor: isDark ? pop.surfaceDark : pop.surface,
+        borderRadius: pop.radius,
+        opacity: anim,
+        transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
+        ...shadow.soft,
+        ...(confirm
+          ? { padding: 14, width: CONFIRM_W }
+          : { flexDirection: 'row' as const, gap: 4, padding: 8 }),
+      }}
+    >
+      {confirm ? (
+        <>
+          <AppText style={{ fontSize: 13, lineHeight: 19, textAlign: 'center', marginBottom: 10 }}>
+            要放下这条消息吗？
+          </AppText>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onKeep}
+              style={({ pressed }) => ({
+                flex: 1,
+                height: 36,
+                borderRadius: 18,
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(245,241,232,0.18)' : 'rgba(42,38,34,0.12)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <AppText style={{ fontSize: 13, lineHeight: 18 }}>留着</AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onRelease}
+              style={({ pressed }) => ({
+                flex: 1,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: RELEASE_BG,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <AppText style={{ fontSize: 13, lineHeight: 18, fontFamily: fontFamily.sansSemiBold, color: RELEASE_TEXT }}>
+                放下
+              </AppText>
+            </Pressable>
+          </View>
+        </>
+      ) : (
+        <>
+          {actionItem('copy', '复制', onCopy)}
+          {role === 'assistant' ? actionItem('volume-2', '朗读', onSpeak) : null}
+          {actionItem('trash-2', '放下', onAskRelease)}
+        </>
+      )}
+    </Animated.View>
+  );
+}
+
+const BAR_HEIGHTS = [5, 11, 7, 9];
+
+/** 朗读中的呼吸声波指示（设计稿 28b/28e）：四根细条呼吸起伏，轻触停止。 */
+function SpeakingIndicator({ onStop }: { onStop: () => void }) {
+  const { colors } = useTheme();
+  const vals = useRef(BAR_HEIGHTS.map(() => new Animated.Value(1))).current;
+
+  useEffect(() => {
+    const anims = vals.map((v, i) =>
+      Animated.sequence([
+        Animated.delay(i * 150),
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(v, { toValue: 0.45, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: USE_NATIVE }),
+            Animated.timing(v, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: USE_NATIVE }),
+          ])
+        ),
+      ])
+    );
+    anims.forEach((a) => a.start());
+    return () => anims.forEach((a) => a.stop());
+  }, [vals]);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="停止朗读"
+      onPress={onStop}
+      hitSlop={8}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, alignSelf: 'flex-start' }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 12 }}>
+        {BAR_HEIGHTS.map((h, i) => (
+          <Animated.View
+            key={i}
+            style={{ width: 2.5, height: h, borderRadius: 2, backgroundColor: colors.accent, transform: [{ scaleY: vals[i] }] }}
+          />
+        ))}
+      </View>
+      <AppText variant="caption" color={colors.accent} style={{ fontSize: 11, lineHeight: 15 }}>
+        朗读中
+      </AppText>
+    </Pressable>
+  );
+}
+
+/** 「已复制」Toast（设计稿 28b/28e）：底部居中胶囊，淡入上浮，1.5s 后自动淡出。 */
+function CopiedToast({ onHide }: { onHide: () => void }) {
+  const { component, shadow, isDark } = useTheme();
+  const anim = useRef(new Animated.Value(0)).current;
+  const onHideRef = useRef(onHide);
+  onHideRef.current = onHide;
+
+  useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 200, easing: Easing.out(Easing.ease), useNativeDriver: USE_NATIVE }).start();
+    const t = setTimeout(() => {
+      Animated.timing(anim, { toValue: 0, duration: 220, easing: Easing.in(Easing.ease), useNativeDriver: USE_NATIVE }).start(
+        () => onHideRef.current()
+      );
+    }, component.toast.durationMs);
+    return () => clearTimeout(t);
+  }, [anim, component.toast.durationMs]);
+
+  const bg = isDark ? component.toast.bgDark : component.toast.bg;
+  const fg = isDark ? component.toast.textDark : component.toast.text;
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 36,
+        alignItems: 'center',
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+      }}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          backgroundColor: bg,
+          borderRadius: component.toast.radius,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          ...shadow.soft,
+        }}
+      >
+        <Feather name="check" size={12} color={fg} />
+        <AppText variant="caption" color={fg} style={{ fontSize: 12, lineHeight: 16 }}>
+          已复制
+        </AppText>
+      </View>
+    </Animated.View>
+  );
+}
+
 /** 完成收束：柔光渐现 + 肯定语 + 「回到今天」（设计稿 21），由用户主动收束。 */
 function CompletionOverlay({ onDone }: { onDone: () => void }) {
   const { colors, fontFamily } = useTheme();
@@ -266,9 +520,11 @@ export default function JournalScreen() {
   const [confirming, setConfirming] = useState(false);
   const [coachError, setCoachError] = useState<'network' | 'nokey' | null>(null);
   const [finishing, setFinishing] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  // 长按浮出的操作胶囊；同一时刻最多一个
+  const [popover, setPopover] = useState<PopoverState | null>(null);
+  // 「已复制」toast：>0 时显示；自增使连续复制也能重新触发
+  const [toastKey, setToastKey] = useState(0);
 
   const router = useRouter();
   const navigation = useNavigation();
@@ -279,10 +535,11 @@ export default function JournalScreen() {
   entryRef.current = entry;
   const scrollRef = useRef<ScrollView>(null);
   const pendingRef = useRef<{ text: string; history: { role: 'user' | 'assistant'; content: string }[] } | null>(null);
-  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playingRef = useRef<string | null>(null);
   playingRef.current = playingId;
+  // 浮层定位：页面容器 + 每条消息的 ref（长按时量取消息位置作为锚点）
+  const rootRef = useRef<View>(null);
+  const messageRefs = useRef<Record<string, View | null>>({});
 
   useEffect(() => {
     getEntry(id!).then(setEntry);
@@ -298,8 +555,6 @@ export default function JournalScreen() {
   }, [navigation]);
 
   useEffect(() => () => {
-    if (copyTimer.current) clearTimeout(copyTimer.current);
-    if (deleteTimer.current) clearTimeout(deleteTimer.current);
     // 只停掉本页发起的朗读
     if (playingRef.current) Speech.stop();
   }, []);
@@ -382,12 +637,23 @@ export default function JournalScreen() {
     else setCoachError(null);
   };
 
-  // ——— 消息操作：复制 / 朗读 / 删除 ———
+  // ——— 消息操作：长按浮出 复制 / 朗读 / 放下（设计稿 28）———
+  /** 长按消息：量取消息在页面容器里的位置，作为浮层锚点。 */
+  const openPopover = (m: CoachMessage) => {
+    const node = messageRefs.current[m.id];
+    const root = rootRef.current;
+    if (!node || !root) return;
+    node.measureInWindow((x, y, w, h) => {
+      root.measureInWindow((rx, ry, rw) => {
+        setPopover({ msg: m, confirm: false, anchor: { x: x - rx, y: y - ry, w, h, rootW: rw } });
+      });
+    });
+  };
+
   const copyMessage = async (m: CoachMessage) => {
     await Clipboard.setStringAsync(m.content);
-    setCopiedId(m.id);
-    if (copyTimer.current) clearTimeout(copyTimer.current);
-    copyTimer.current = setTimeout(() => setCopiedId(null), 1500);
+    setPopover(null);
+    setToastKey((k) => k + 1);
   };
 
   const togglePlay = (m: CoachMessage) => {
@@ -402,68 +668,30 @@ export default function JournalScreen() {
     Speech.speak(m.content, { language: 'zh-CN', rate: 0.95, onDone: clear, onStopped: clear, onError: clear });
   };
 
-  const removeMessage = async (m: CoachMessage) => {
-    if (deletingId !== m.id) {
-      setDeletingId(m.id);
-      if (deleteTimer.current) clearTimeout(deleteTimer.current);
-      deleteTimer.current = setTimeout(() => setDeletingId(null), 2000);
-      return;
-    }
-    if (deleteTimer.current) clearTimeout(deleteTimer.current);
-    setDeletingId(null);
-    if (playingId === m.id) {
-      Speech.stop();
-      setPlayingId(null);
-    }
+  const stopPlaying = () => {
+    Speech.stop();
+    setPlayingId(null);
+  };
+
+  /** 浮层确认态里的「放下」：删除该条消息。 */
+  const releaseMessage = async (m: CoachMessage) => {
+    setPopover(null);
+    if (playingId === m.id) stopPlaying();
     await deleteCoachMessage(m.id);
     setMessages(await listCoachMessages(id!));
   };
 
-  /** 每条消息气泡下方的低调操作行。 */
-  const renderActions = (m: CoachMessage) => (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-        marginTop: 8,
-        opacity: 0.7,
-        alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-      }}
+  /** 消息正文：长按浮出操作胶囊；轻点收起已有浮层。 */
+  const renderMessageBody = (m: CoachMessage, children: ReactNode) => (
+    <Pressable
+      ref={(r) => { messageRefs.current[m.id] = r; }}
+      accessibilityLabel="长按打开消息操作"
+      delayLongPress={350}
+      onLongPress={() => openPopover(m)}
+      onPress={() => setPopover(null)}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copiedId === m.id ? '已复制' : '复制'}
-        onPress={() => copyMessage(m)}
-        hitSlop={8}
-      >
-        <Feather name={copiedId === m.id ? 'check' : 'copy'} size={14} color={colors.textSecondary} />
-      </Pressable>
-      {m.role === 'assistant' ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={playingId === m.id ? '停止朗读' : '朗读'}
-          onPress={() => togglePlay(m)}
-          hitSlop={8}
-        >
-          <Feather name={playingId === m.id ? 'square' : 'volume-2'} size={14} color={colors.textSecondary} />
-        </Pressable>
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={deletingId === m.id ? '确认删除' : '删除'}
-        onPress={() => removeMessage(m)}
-        hitSlop={8}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
-      >
-        <Feather name="trash-2" size={14} color={deletingId === m.id ? colors.danger : colors.textSecondary} />
-        {deletingId === m.id ? (
-          <AppText variant="caption" color={colors.danger} style={{ fontSize: 11, lineHeight: 15 }}>
-            再点一次删除
-          </AppText>
-        ) : null}
-      </Pressable>
-    </View>
+      {children}
+    </Pressable>
   );
 
   const stepDots = (
@@ -485,7 +713,7 @@ export default function JournalScreen() {
   return (
     <Screen padded={false}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ flex: 1 }}>
+      <View ref={rootRef} style={{ flex: 1 }} collapsable={false}>
         <ScrollView
           ref={scrollRef}
           contentContainerStyle={{ paddingHorizontal: 28, paddingBottom: 48 }}
@@ -614,7 +842,7 @@ export default function JournalScreen() {
               </View>
             ) : null}
 
-            {/* 消息列表：无气泡的纯文本语言（设计稿 04） */}
+            {/* 消息列表：无气泡的纯文本语言（设计稿 04），长按浮出操作（设计稿 28） */}
             {messages.map((m) =>
               m.role === 'assistant' ? (
                 <View key={m.id} style={{ flexDirection: 'row', gap: 12, alignSelf: 'flex-start', maxWidth: '88%' }}>
@@ -628,19 +856,24 @@ export default function JournalScreen() {
                     }}
                   />
                   <View style={{ flexShrink: 1 }}>
-                    <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
-                    {renderActions(m)}
+                    {renderMessageBody(
+                      m,
+                      <AppText style={{ fontSize: 16, lineHeight: 27 }}>{m.content}</AppText>
+                    )}
+                    {playingId === m.id ? <SpeakingIndicator onStop={stopPlaying} /> : null}
                   </View>
                 </View>
               ) : (
                 <View key={m.id} style={{ alignSelf: 'flex-end', alignItems: 'flex-end', maxWidth: '80%' }}>
-                  <AppText
-                    color={colors.textPrimary}
-                    style={{ fontSize: 16, lineHeight: 27, textAlign: 'right', opacity: 0.75 }}
-                  >
-                    {m.content}
-                  </AppText>
-                  {renderActions(m)}
+                  {renderMessageBody(
+                    m,
+                    <AppText
+                      color={colors.textPrimary}
+                      style={{ fontSize: 16, lineHeight: 27, textAlign: 'right', opacity: 0.75 }}
+                    >
+                      {m.content}
+                    </AppText>
+                  )}
                 </View>
               )
             )}
@@ -769,6 +1002,32 @@ export default function JournalScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* 长按操作浮层：全屏透明背板点哪都收起，胶囊锚定在消息上缘附近 */}
+        {popover ? (
+          <View style={StyleSheet.absoluteFill}>
+            <Pressable
+              accessibilityLabel="收起消息操作"
+              onPress={() => setPopover(null)}
+              style={StyleSheet.absoluteFill}
+            />
+            <MessagePopover
+              anchor={popover.anchor}
+              role={popover.msg.role}
+              confirm={popover.confirm}
+              onCopy={() => copyMessage(popover.msg)}
+              onSpeak={() => {
+                setPopover(null);
+                togglePlay(popover.msg);
+              }}
+              onAskRelease={() => setPopover({ ...popover, confirm: true })}
+              onKeep={() => setPopover(null)}
+              onRelease={() => releaseMessage(popover.msg)}
+            />
+          </View>
+        ) : null}
+
+        {toastKey > 0 ? <CopiedToast key={toastKey} onHide={() => setToastKey(0)} /> : null}
 
         {finishing ? <CompletionOverlay onDone={() => router.back()} /> : null}
       </View>

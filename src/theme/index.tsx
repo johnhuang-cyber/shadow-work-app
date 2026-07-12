@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { useColorScheme } from 'react-native';
 import { getThemePref, setThemePref, type ThemePref } from '../services/settingsService';
 import {
+  component,
   darkColors,
   fontFamily,
   lightColors,
@@ -24,6 +25,7 @@ export interface Theme {
   radius: typeof radius;
   shadow: typeof shadow;
   motion: typeof motion;
+  component: typeof component;
   isDark: boolean;
 }
 
@@ -82,8 +84,9 @@ export function useTheme(): Theme {
     radius,
     shadow,
     motion,
+    component,
     isDark,
   };
 }
 
-export { lightColors, darkColors, type, fontFamily, spacing, radius, shadow, motion } from './tokens';
+export { lightColors, darkColors, type, fontFamily, spacing, radius, shadow, motion, component } from './tokens';

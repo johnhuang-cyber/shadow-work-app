@@ -87,6 +87,35 @@ export const shadow = {
   },
 } as const;
 
+/** Component-level tokens（design-tokens.json `component`，对应设计稿 27/28）。 */
+export const component = {
+  /** 长按消息浮出的操作胶囊（28a/28d）。 */
+  messageActionPopover: {
+    surface: '#FBF8F1',
+    surfaceDark: '#342C4E',
+    radius: 18,
+    itemRadius: 12,
+    enterMs: 240,
+  },
+  /** 「已复制」提示（28b/28e）：浅色模式深底浅字，深色模式反转。 */
+  toast: {
+    bg: '#2A2622',
+    bgDark: '#F5F1E8',
+    text: '#F5F1E8',
+    textDark: '#1F1B2E',
+    radius: 999,
+    durationMs: 1500,
+  },
+  /** 历史记录左滑删除（27a/27b）。 */
+  swipeDelete: {
+    revealBg: '#EAD9CC',
+    revealBgDark: '#3A2C33',
+    confirmLabel: '放下',
+    cancelLabel: '留着',
+    collapseMs: 300,
+  },
+} as const;
+
 export const motion = {
   /** 无弹跳曲线；步骤切换用淡入+8px位移 */
   easing: 'ease-in-out',
