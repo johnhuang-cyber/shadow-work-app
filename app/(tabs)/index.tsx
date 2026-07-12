@@ -14,7 +14,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { createEntry, deleteEntry, listEntries } from '../../src/data/journalDao';
 import { addBelief, listBeliefs } from '../../src/data/beliefDao';
 import { QUOTES } from '../../src/content/quotes';
-import { dailyQuote } from '../../src/domain/quotePick';
+import { dayOfYear } from '../../src/domain/quotePick';
+import { getQuoteOffset, setQuoteOffset } from '../../src/services/settingsService';
 import type { JournalEntry } from '../../src/types';
 import { AppText, Card, GhostButton, PrimaryButton, Screen } from '../../src/components';
 import { useTheme } from '../../src/theme';
@@ -254,19 +255,40 @@ export default function TodayScreen() {
   const [openId, setOpenId] = useState<string | null>(null);
   // 今日语录是否已收进频率卡（会话内状态；进入页面时按 mantra 与卡墙对齐）
   const [collected, setCollected] = useState(false);
+  // 「换一句」的当天偏移：切到哪句就停在哪句（按天持久化）
+  const [quoteOffset, setQuoteOffsetState] = useState(0);
   const listRef = useRef<FlatList<JournalEntry>>(null);
+  const quoteFade = useRef(new Animated.Value(1)).current;
 
-  // 每日一句：Katie Clarke 语录，按年内天数轮换
-  const quote = dailyQuote(new Date(), QUOTES);
+  // 每日一句：Katie Clarke 语录，按年内天数轮换 + 用户当天的「换一句」偏移
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const quote = QUOTES[(dayOfYear(new Date()) + quoteOffset) % QUOTES.length];
 
   useFocusEffect(
     useCallback(() => {
       listEntries().then(setEntries);
+      getQuoteOffset(todayKey).then(setQuoteOffsetState).catch(() => {});
       listBeliefs()
         .then((bs) => setCollected(bs.some((b) => b.mantra === quote.zh)))
         .catch(() => {});
-    }, [quote.zh])
+    }, [quote.zh, todayKey])
   );
+
+  /** 换一句：柔和淡出 → 切换 → 淡入；当天偏移持久化。 */
+  const nextQuote = () => {
+    Animated.timing(quoteFade, {
+      toValue: 0, duration: 160, easing: Easing.inOut(Easing.ease), useNativeDriver: USE_NATIVE,
+    }).start(() => {
+      const next = quoteOffset + 1;
+      setQuoteOffsetState(next);
+      setQuoteOffset(todayKey, next).catch(() => {});
+      const zh = QUOTES[(dayOfYear(new Date()) + next) % QUOTES.length].zh;
+      listBeliefs().then((bs) => setCollected(bs.some((b) => b.mantra === zh))).catch(() => {});
+      Animated.timing(quoteFade, {
+        toValue: 1, duration: 260, easing: Easing.inOut(Easing.ease), useNativeDriver: USE_NATIVE,
+      }).start();
+    });
+  };
 
   /** 收藏今日语录：中文作 mantra、英文原句作新频率，落进频率卡墙（去重）。 */
   const collectQuote = async () => {
@@ -306,7 +328,7 @@ export default function TodayScreen() {
       <AppText variant="caption" secondary style={{ fontSize: 13, letterSpacing: 0.4 }}>
         {formatToday(new Date())}
       </AppText>
-      <View style={{ flex: 1, justifyContent: 'center', gap: 22 }}>
+      <Animated.View style={{ flex: 1, justifyContent: 'center', gap: 22, opacity: quoteFade }}>
         <AppText
           lineBreakStrategyIOS="standard"
           style={{ fontFamily: fontFamily.serif, fontSize: 32, lineHeight: 43 }}
@@ -325,30 +347,48 @@ export default function TodayScreen() {
         >
           {quote.en}
         </AppText>
-        {/* 收藏这句 → 收进频率卡墙（去重后会话内保持已收藏态） */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={collected ? '已收进频率卡' : '收藏这句'}
-          onPress={collectQuote}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            alignSelf: 'flex-start',
-            opacity: pressed ? 0.5 : collected ? 1 : 0.7,
-          })}
-        >
-          <Ionicons
-            name={collected ? 'heart' : 'heart-outline'}
-            size={14}
-            color={collected ? colors.accent : colors.textSecondary}
-          />
-          <AppText variant="caption" secondary style={{ fontSize: 12, lineHeight: 17 }}>
-            {collected ? '已收进频率卡' : '收藏这句'}
-          </AppText>
-        </Pressable>
-      </View>
+        {/* 收藏这句 → 收进频率卡墙（去重）；换一句 → 当天偏移持久化 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={collected ? '已收进频率卡' : '收藏这句'}
+            onPress={collectQuote}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              opacity: pressed ? 0.5 : collected ? 1 : 0.7,
+            })}
+          >
+            <Ionicons
+              name={collected ? 'heart' : 'heart-outline'}
+              size={14}
+              color={collected ? colors.accent : colors.textSecondary}
+            />
+            <AppText variant="caption" secondary style={{ fontSize: 12, lineHeight: 17 }}>
+              {collected ? '已收进频率卡' : '收藏这句'}
+            </AppText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="换一句"
+            onPress={nextQuote}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              opacity: pressed ? 0.5 : 0.7,
+            })}
+          >
+            <Ionicons name="refresh" size={14} color={colors.textSecondary} />
+            <AppText variant="caption" secondary style={{ fontSize: 12, lineHeight: 17 }}>
+              换一句
+            </AppText>
+          </Pressable>
+        </View>
+      </Animated.View>
       <View style={{ gap: 14 }}>
         {createError ? (
           <AppText variant="caption" color={colors.danger} style={{ textAlign: 'center' }}>

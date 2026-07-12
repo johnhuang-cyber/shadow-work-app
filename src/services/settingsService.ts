@@ -60,6 +60,17 @@ export async function setPowerScore(dateKey: string, v: number): Promise<void> {
   await setItem(`power_${dateKey}`, String(v));
 }
 
+/** 首页每日一句的「换一句」偏移：按天存，key 形如 quote_offset_2026-07-12；当天切到哪句就停在哪句。 */
+export async function getQuoteOffset(dateKey: string): Promise<number> {
+  const v = await getItem(`quote_offset_${dateKey}`);
+  const n = v == null ? NaN : Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+export async function setQuoteOffset(dateKey: string, offset: number): Promise<void> {
+  await setItem(`quote_offset_${dateKey}`, String(offset));
+}
+
 /** 主题偏好：system 跟随系统 / dark 强制深色 / light 强制浅色。 */
 export type ThemePref = 'system' | 'dark' | 'light';
 
