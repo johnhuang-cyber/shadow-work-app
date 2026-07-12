@@ -44,7 +44,36 @@
   "shadow": {
     "soft": "0 8px 24px rgba(42,38,34,0.08)",
     "card": "0 12px 40px rgba(42,38,34,0.07)",
-    "accentGlow": "0 10px 24px rgba(201,123,90,0.35)"
+    "accentGlow": "0 10px 24px rgba(201,123,90,0.35)",
+    "popover": "0 14px 34px rgba(42,38,34,0.14)",
+    "popoverDark": "0 14px 34px rgba(0,0,0,0.4)",
+    "toast": "0 8px 20px rgba(42,38,34,0.2)"
+  },
+  "component": {
+    "messageActionPopover": {
+      "surface": "#FBF8F1",
+      "surfaceDark": "#342C4E",
+      "radius": 18,
+      "itemRadius": 12,
+      "enterMs": 240,
+      "enterFrom": "scale(0.9) opacity(0)",
+      "anchor": "message top-left, scales out from message edge (not screen edge)"
+    },
+    "toast": {
+      "bg": "#2A2622",
+      "bgDark": "#F5F1E8",
+      "text": "#F5F1E8",
+      "textDark": "#1F1B2E",
+      "radius": 999,
+      "durationMs": 1500
+    },
+    "swipeDelete": {
+      "revealBg": "#EAD9CC",
+      "revealBgDark": "#3A2C33",
+      "confirmLabel": "放下",
+      "cancelLabel": "留着",
+      "collapseMs": 300
+    }
   },
   "motion": {
     "easing": "ease-in-out",
