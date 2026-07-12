@@ -9,22 +9,17 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { createEntry, deleteEntry, listEntries } from '../../src/data/journalDao';
+import { addBelief, listBeliefs } from '../../src/data/beliefDao';
+import { QUOTES } from '../../src/content/quotes';
+import { dailyQuote } from '../../src/domain/quotePick';
 import type { JournalEntry } from '../../src/types';
 import { AppText, Card, GhostButton, PrimaryButton, Screen } from '../../src/components';
 import { useTheme } from '../../src/theme';
 
 const USE_NATIVE = Platform.OS !== 'web';
-
-// 每日引导语，按一年中的第几天轮换。第一组文案来自设计稿 01。
-const GUIDANCE: { title: string; sub: string }[] = [
-  { title: '此刻，你不需要\n成为任何人。', sub: '只需要，坐下来，\n和自己在一起。' },
-  { title: '慢一点，\n也没有关系。', sub: '今天的你，\n已经走了很远。' },
-  { title: '情绪来了，\n就让它来。', sub: '它只是想，\n被你看见。' },
-  { title: '你已经做得\n够多了。', sub: '现在，轻轻放下，\n回到自己。' },
-];
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -35,10 +30,6 @@ function formatToday(d: Date): string {
 function formatEntryDate(ts: number): string {
   const d = new Date(ts);
   return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
-}
-
-function dayOfYear(d: Date): number {
-  return Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
 }
 
 // ——— 左滑删除（设计稿 27a/27b）———
@@ -261,11 +252,40 @@ export default function TodayScreen() {
   const [containerH, setContainerH] = useState(0);
   // 当前左滑打开的卡片 id；同一时刻最多一张（打开另一张时上一张自动滑回）
   const [openId, setOpenId] = useState<string | null>(null);
+  // 今日语录是否已收进频率卡（会话内状态；进入页面时按 mantra 与卡墙对齐）
+  const [collected, setCollected] = useState(false);
   const listRef = useRef<FlatList<JournalEntry>>(null);
 
-  useFocusEffect(useCallback(() => { listEntries().then(setEntries); }, []));
+  // 每日一句：Katie Clarke 语录，按年内天数轮换
+  const quote = dailyQuote(new Date(), QUOTES);
 
-  const guidance = GUIDANCE[dayOfYear(new Date()) % GUIDANCE.length];
+  useFocusEffect(
+    useCallback(() => {
+      listEntries().then(setEntries);
+      listBeliefs()
+        .then((bs) => setCollected(bs.some((b) => b.mantra === quote.zh)))
+        .catch(() => {});
+    }, [quote.zh])
+  );
+
+  /** 收藏今日语录：中文作 mantra、英文原句作新频率，落进频率卡墙（去重）。 */
+  const collectQuote = async () => {
+    if (collected) return;
+    try {
+      const existing = await listBeliefs();
+      if (!existing.some((b) => b.mantra === quote.zh)) {
+        await addBelief({
+          limitingBelief: '',
+          source: 'Katie Clarke',
+          empoweringBelief: quote.en,
+          mantra: quote.zh,
+        });
+      }
+      setCollected(true);
+    } catch {
+      // 存储失败不打断首页；下次进入或再点一次会重试
+    }
+  };
 
   const start = async () => {
     try {
@@ -287,12 +307,47 @@ export default function TodayScreen() {
         {formatToday(new Date())}
       </AppText>
       <View style={{ flex: 1, justifyContent: 'center', gap: 22 }}>
-        <AppText style={{ fontFamily: fontFamily.serif, fontSize: 32, lineHeight: 43 }}>
-          {guidance.title}
+        <AppText
+          lineBreakStrategyIOS="standard"
+          style={{ fontFamily: fontFamily.serif, fontSize: 32, lineHeight: 43 }}
+        >
+          {quote.zh}
         </AppText>
-        <AppText secondary style={{ fontSize: 16, lineHeight: 27, maxWidth: 260 }}>
-          {guidance.sub}
+        <AppText
+          secondary
+          style={{
+            fontFamily: fontFamily.serif,
+            fontStyle: 'italic',
+            fontSize: 13,
+            lineHeight: 21,
+            maxWidth: 300,
+          }}
+        >
+          {quote.en}
         </AppText>
+        {/* 收藏这句 → 收进频率卡墙（去重后会话内保持已收藏态） */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={collected ? '已收进频率卡' : '收藏这句'}
+          onPress={collectQuote}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            alignSelf: 'flex-start',
+            opacity: pressed ? 0.5 : collected ? 1 : 0.7,
+          })}
+        >
+          <Ionicons
+            name={collected ? 'heart' : 'heart-outline'}
+            size={14}
+            color={collected ? colors.accent : colors.textSecondary}
+          />
+          <AppText variant="caption" secondary style={{ fontSize: 12, lineHeight: 17 }}>
+            {collected ? '已收进频率卡' : '收藏这句'}
+          </AppText>
+        </Pressable>
       </View>
       <View style={{ gap: 14 }}>
         {createError ? (

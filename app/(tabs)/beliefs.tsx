@@ -196,6 +196,8 @@ function BeliefCard({ belief, warm }: { belief: Belief; warm: boolean }) {
     ? (warm ? WARM_GRADIENT_DARK : COOL_GRADIENT_DARK)
     : (warm ? WARM_GRADIENT_LIGHT : COOL_GRADIENT_LIGHT);
   const d = new Date(belief.createdAt);
+  // 从首页「收藏这句」收进来的语录卡：没有旧频率，只有出处（Katie Clarke）与英文原句
+  const isQuoteCard = belief.limitingBelief === '';
 
   return (
     <Pressable accessibilityRole="button" onPress={() => setExpanded((e) => !e)}>
@@ -216,28 +218,47 @@ function BeliefCard({ belief, warm }: { belief: Belief; warm: boolean }) {
           {belief.mantra || belief.empoweringBelief}
         </AppText>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, gap: 12 }}>
-          <AppText color={metaTint} numberOfLines={expanded ? undefined : 1} style={{ flex: 1, fontSize: 11, lineHeight: 17 }}>
-            旧：{belief.limitingBelief}
-          </AppText>
+          {isQuoteCard ? (
+            <AppText color={metaTint} style={{ flex: 1, fontSize: 11, lineHeight: 17 }}>
+              — Katie Clarke
+            </AppText>
+          ) : (
+            <AppText color={metaTint} numberOfLines={expanded ? undefined : 1} style={{ flex: 1, fontSize: 11, lineHeight: 17 }}>
+              旧：{belief.limitingBelief}
+            </AppText>
+          )}
           <Ionicons name="heart" size={17} color={tint} />
         </View>
         {expanded ? (
           <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.hairline, gap: 8 }}>
-            <AppText
-              variant="caption"
-              secondary
-              style={{ fontSize: 13, lineHeight: 22, textDecorationLine: 'line-through' }}
-            >
-              旧频率：{belief.limitingBelief}
-            </AppText>
-            {belief.source ? (
-              <AppText variant="caption" secondary style={{ fontSize: 13, lineHeight: 22 }}>
-                来源：{belief.source}
+            {isQuoteCard ? (
+              /* 语录卡展开：英文原句（斜体）+ 收藏日期，无「旧频率」 */
+              <AppText
+                variant="caption"
+                secondary
+                style={{ fontStyle: 'italic', fontSize: 13, lineHeight: 22 }}
+              >
+                {belief.empoweringBelief}
               </AppText>
-            ) : null}
-            <AppText variant="caption" color={tint} style={{ fontSize: 13, lineHeight: 22 }}>
-              新频率：{belief.empoweringBelief}
-            </AppText>
+            ) : (
+              <>
+                <AppText
+                  variant="caption"
+                  secondary
+                  style={{ fontSize: 13, lineHeight: 22, textDecorationLine: 'line-through' }}
+                >
+                  旧频率：{belief.limitingBelief}
+                </AppText>
+                {belief.source ? (
+                  <AppText variant="caption" secondary style={{ fontSize: 13, lineHeight: 22 }}>
+                    来源：{belief.source}
+                  </AppText>
+                ) : null}
+                <AppText variant="caption" color={tint} style={{ fontSize: 13, lineHeight: 22 }}>
+                  新频率：{belief.empoweringBelief}
+                </AppText>
+              </>
+            )}
             <AppText variant="caption" color={metaTint} style={{ fontSize: 12, lineHeight: 18 }}>
               收藏于 {d.getMonth() + 1} 月 {d.getDate()} 日
             </AppText>

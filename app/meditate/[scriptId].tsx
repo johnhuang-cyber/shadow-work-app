@@ -8,6 +8,8 @@ import * as Speech from 'expo-speech';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { MEDITATION_SCRIPTS, medReducer, initMedState } from '../../src/domain/meditationScripts';
 import type { MedState, MedAction } from '../../src/domain/meditationScripts';
+import { QUOTES } from '../../src/content/quotes';
+import { themeQuote, dayOfYear } from '../../src/domain/quotePick';
 import { addSession } from '../../src/data/meditationDao';
 import { AppText } from '../../src/components';
 import { darkColors, fontFamily } from '../../src/theme';
@@ -125,6 +127,13 @@ function Completion({ onBack }: { onBack: () => void }) {
       </AppText>
       <AppText color={cream(0.5)} style={{ fontSize: 14, lineHeight: 24, textAlign: 'center' }}>
         你为自己，{'\n'}腾出了一段安静的时间。
+      </AppText>
+      {/* 按天轮换的 Katie「临在」语录，作完成态的轻声回响 */}
+      <AppText
+        color={cream(0.45)}
+        style={{ fontStyle: 'italic', fontSize: 13, lineHeight: 22, textAlign: 'center', maxWidth: 260 }}
+      >
+        {themeQuote('presence', QUOTES, dayOfYear(new Date())).zh}
       </AppText>
       <Pressable
         accessibilityRole="button"

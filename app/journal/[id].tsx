@@ -18,6 +18,8 @@ import * as Speech from 'expo-speech';
 import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { JOURNAL_STEPS, nextStep, prevStep, isLastStep } from '../../src/domain/journalSteps';
 import { derivePartsSummary } from '../../src/domain/parts';
+import { QUOTES } from '../../src/content/quotes';
+import { themeQuote, dayOfYear } from '../../src/domain/quotePick';
 import { getEntry, saveEntry, listEntries, addCoachMessage, listCoachMessages, deleteCoachMessage } from '../../src/data/journalDao';
 import { runCoach } from '../../src/ai/deepseek';
 import { getAiConsent, setAiConsent } from '../../src/services/settingsService';
@@ -70,7 +72,7 @@ const STEP_COPY: Record<string, StepCopy> = {
 };
 
 /** 接纳步骤的呼吸圆环：4 秒吸气放大 / 6 秒呼气收缩，轻触计数。 */
-function BreathingCircle({ count, onTap }: { count: number; onTap: () => void }) {
+function BreathingCircle({ count, onTap, affirmation }: { count: number; onTap: () => void; affirmation: string }) {
   const { colors, fontFamily, shadow } = useTheme();
   const scale = useRef(new Animated.Value(0.94)).current;
 
@@ -145,8 +147,8 @@ function BreathingCircle({ count, onTap }: { count: number; onTap: () => void })
         ))}
       </View>
       {count >= 3 ? (
-        <AppText secondary style={{ fontSize: 15, lineHeight: 26, textAlign: 'center' }}>
-          很好，你已经在接纳它了。
+        <AppText secondary style={{ fontSize: 15, lineHeight: 26, textAlign: 'center', maxWidth: 270 }}>
+          {affirmation}
         </AppText>
       ) : null}
     </View>
@@ -548,6 +550,14 @@ function CompletionOverlay({ onDone }: { onDone: () => void }) {
       <AppText secondary style={{ fontSize: 14, lineHeight: 24, textAlign: 'center' }}>
         你已经把这份感受，{'\n'}好好地接住了。
       </AppText>
+      {/* 按天轮换的 Katie「阴影」语录，作收束时的轻声回响 */}
+      <AppText
+        variant="caption"
+        secondary
+        style={{ fontStyle: 'italic', fontSize: 13, lineHeight: 21, textAlign: 'center', opacity: 0.7, maxWidth: 260 }}
+      >
+        {themeQuote('shadow', QUOTES, dayOfYear(new Date())).zh}
+      </AppText>
       <GhostButton label="回到今天" onPress={onDone} style={{ height: 48, paddingHorizontal: 28, marginTop: 8 }} />
     </Animated.View>
   );
@@ -889,7 +899,12 @@ export default function JournalScreen() {
               </View>
             ) : null}
             {isAccept ? (
-              <BreathingCircle count={acceptCount} onTap={() => setAcceptCount((c) => Math.min(c + 1, 3))} />
+              <BreathingCircle
+                count={acceptCount}
+                onTap={() => setAcceptCount((c) => Math.min(c + 1, 3))}
+                // 三次「没关系」之后的肯定语：按天轮换的 Katie「接纳」语录
+                affirmation={themeQuote('acceptance', QUOTES, dayOfYear(new Date())).zh}
+              />
             ) : (
               <SoftInput
                 value={value}
