@@ -73,6 +73,28 @@
       "confirmLabel": "放下",
       "cancelLabel": "留着",
       "collapseMs": 300
+    },
+    "coachMessage": {
+      "coachBubbleBg": "#FBF8F1",
+      "coachBubbleBgDark": "#2A2440",
+      "coachTextColor": "textPrimary",
+      "userBubbleBg": "#F3E4D6",
+      "userBubbleBgDark": "rgba(201,123,90,0.16)",
+      "userTextColor": "#4A3B30 (light) / #F1DFCE (dark)",
+      "bubbleRadius": "20px, direction corner reduced to 6px (soft speech direction without a tail)",
+      "bubbleMaxWidth": "78%",
+      "bubblePadding": "16px 18px",
+      "bubbleLineHeight": 1.75,
+      "groupGapSameSpeaker": 6,
+      "groupGapSpeakerChange": 20,
+      "avatar": {
+        "size": 34,
+        "style": "layered radial-gradient halo (breath/light motif) + thin inner ring — not a flat color circle",
+        "gradientLight": "radial-gradient(circle at 35% 30%, #F3D9C4, #D8E3E6 65%, #C9A98A 100%)",
+        "gradientDark": "radial-gradient(circle at 35% 30%, #6E5A78, #3A3560 65%, #2A2440 100%)",
+        "showRule": "only on the first bubble of a consecutive coach run, not on every message",
+        "userAvatar": "none — right alignment + warm bubble wash already distinguish the user; an avatar would add visual noise for a side that never needs identification"
+      }
     }
   },
   "motion": {
